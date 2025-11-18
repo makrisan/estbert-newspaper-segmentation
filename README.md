@@ -1,6 +1,10 @@
 # iaib
 
+# Keelemudelipõhine ajaleheartiklite eraldamine ja temaatiline analüüs
+Autorid: Maria Kristina Andranikyan, Greteli Mittal, Kelli Pikka
+Juhendaja: Innar Liiv, PhD, Tallinna Tehnikaülikool (TalTech), infotehnoloogia teaduskond
 
+**Projekt asub SIIN repos**
 
 ## Getting started
 
