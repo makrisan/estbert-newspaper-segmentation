@@ -1,0 +1,11 @@
+% Abstract's text goes here (square brackets should be removed)
+[YOUR TEXT GOES HERE]
+
+
+% No need to change this
+The thesis is in \langEng~and contains \calculatepages pages of text, 
+\total{totalchapters} chapters\ifthenelse{\equal{\totvalue{figure}}{0}}{}{% If no figures, do nothing
+, \total{figure} \ifnum\totvalue{figure}=1 figure\else figures\fi%
+}\ifthenelse{\equal{\totvalue{table}}{0}}{}{% If no tables, do nothing
+, \total{table} \ifnum\totvalue{table}=1 table\else tables\fi%
+}.
