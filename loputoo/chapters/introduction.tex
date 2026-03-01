@@ -1,0 +1,97 @@
+Some basic ways to manipulate text are \textit{italics} and \textbf{bold}. 
+
+One can reference Figures (see Figure \ref{fig:taltech} for example) as well as cite references which are defined in the \textit{references.bib} file \cite{spectre}, \cite{example-reference} .
+
+\begin{figure}[hb] % h-here, if possible; H-here, definitely; t-top of the page; b-bottom of the page; p-page of floats
+    \centering
+    \includegraphics[width=.3\textwidth]{figures/taltech.jpg} % Includes an image from the specified path, setting the width to 50% of the text width
+    \caption{An image of TalTech logo.} % Provides a caption for the figure, italicizing the text
+    \label{fig:taltech} % Sets a label for the figure to be referenced later
+\end{figure}
+
+The \textit{Bibliography}, \textit{List of Figures}, and \textit{List of Tables} are automatically generated, with references, figures, and tables updated as needed. Unused citations won't appear, and numbering follows the order of appearance.
+One can create an itemized list:
+\begin{itemize}  % Begins an itemized list environment
+    \item item a  % First item in the list
+    \item item b  % Second item in the list...
+    \item ...
+\end{itemize}
+
+Or enumerate them:
+\begin{enumerate} % Begins an enumerated list environment
+    \item item x  % First item in the list...
+    \item item y
+    \item ...
+\end{enumerate}
+
+
+A pair of side-by-side images can be seen in Figure \ref{fig:sidebyside}. Each image can also be referenced individually; for instance, refer to Figure \ref{fig:tux1} for the first image.
+
+\begin{figure}[htb] % Placement specifier: h-here, t-top, b-bottom
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.3\textwidth} % Set width for side-by-side arrangement
+        \includegraphics[width=\textwidth]{figures/penguins/tux1.png} % Image path and full width in subfigure
+        \caption{} % Leave caption empty to automatically label this subfigure as (a)
+        \label{fig:tux1}
+    \end{subfigure}
+    % Second subfigure
+    \begin{subfigure}[b]{0.3\textwidth} % Set width for side-by-side arrangement
+        \includegraphics[width=\textwidth]{figures/penguins/tux2.png} % Path and full width in subfigure
+        \caption{} % Leave caption empty to automatically label this subfigure as (b)
+    \end{subfigure}
+    
+    \caption{Side-by-side images of Tux: (a) on a white background, (b) on a black background.} % Main caption for the whole figure environment
+    \label{fig:sidebyside} % Main label to reference the entire figure
+\end{figure}
+
+\subsubsection{Using Part Labels}
+Labels in the format \texttt{\textbackslash label\{chapter:<part\_name>\}} are used to categorize chapters into specific parts of the thesis structure. They play an important role in maintaining the document's structure and validating its compliance with expected ratios for each section.
+
+\begin{itemize}
+    \item \textbf{Allowed Labels:}
+        \begin{itemize}
+            \item \texttt{chapter:introduction} - For the \textbf{Introduction} section (less than 10\% of the thesis).
+            \item \texttt{chapter:method} - For the \textbf{Methodology} section (up to 20\%).
+            \item \texttt{chapter:results} - For the \textbf{Results} section (30–40\%).
+            \item \texttt{chapter:discussion} - For the \textbf{Discussion and Analysis} section (30–40\%).
+            \item \texttt{chapter:summary} - For the \textbf{Summary} section (less than 0.5 pages).
+        \end{itemize}
+    \item \textbf{Purpose:} These labels enable automated tools to check if each part of your thesis conforms to the required word count ratios.
+    \item \textbf{Usage:} Add the appropriate label to the \texttt{\textbackslash chapter} command for each chapter in your document.
+    \item \textbf{Subdividing a Part into Multiple Chapters:} If a single part (e.g., \textbf{Discussion}) is split into multiple chapters, ensure the main part label remains consistent, and additional identifiers can be appended to distinguish chapters. For instance:
+        \begin{itemize}
+            \item \texttt{\textbackslash label\{chapter:discussion-analysis\}} for an analysis chapter.
+            \item \texttt{\textbackslash label\{chapter:discussion-discussion\}} for the primary discussion.
+            \item \texttt{\textbackslash label\{chapter:discussion-conclusions\}} for conclusions.
+        \end{itemize}
+        Only the main part (e.g., \texttt{chapter:discussion}) is relevant for validation and ratio calculations; the suffixes (e.g., \texttt{-analysis}, \texttt{-discussion}, \texttt{-conclusions}) are for your internal organization and clarity.
+\end{itemize}
+
+% \blindtext % generates placeholder text. Uncomment to add text before the table if you'd like to see how it continues across pages.
+
+Here, you can use \textbackslash blindtext to see how the table continues on the next page.  This command generates dummy text that can help you visualize the layout of your document. Uncomment the line above to add filler text.
+
+A table with three columns can be seen in Table \ref{tab:requirements}.
+\begin{longtable}[hp]{|p{0,5cm}|p{10cm}|p{3cm}|} % Begins a longtable with three columns, defining specific widths for each column
+	\caption{A table with some requirements.} % Provides a caption for the table, italicizing the text
+	\label{tab:requirements}\\ \hline % Sets a label for the table and starts the table with a horizontal line
+	\textbf{Nr} &  \textbf{Requirement} & \textbf{Weight}  \\ % Table header with bold text
+	\hline % Adds a horizontal line after the header
+	\endfirsthead % Marks the end of the header for the first page of the table
+	\multicolumn{3}{l} % Merges three columns for the continuation note
+	{\tablename\ \thetable\ -- \textit{Continues...}} \\ % Creates a continuation note with italicized text
+	\hline
+	\textbf{Nr} &  \textbf{Requirement} & \textbf{Weight}  \\ % Table header for continued pages, with bold text
+	\hline
+	\endhead % Marks the end of the header for all pages after the first
+	\hline \multicolumn{3}{l}{\textit{Continues...}} \\ % Adds a note at the end of the table for continued pages
+	\endfoot % Marks the end of the table body
+	\hline
+	\endlastfoot % Marks the end of the table for the last page
+1 & Price & High\\ \hline % First row of the table with data and a horizontal line...
+2 & Variety& Middle\\ \hline
+3 & Support& Low\\ \hline
+\end{longtable}
+
+We can use variables set in the \textit{main.tex} file to render values like our title (\thesisTitleEng) or supervisor names (\textbf{Supervisor}: \supervisorName, \textbf{Co-supervisor}: \cosupervisorName ).

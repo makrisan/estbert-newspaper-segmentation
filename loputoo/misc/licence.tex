@@ -1,0 +1,84 @@
+% Generates the list of supervisors. Do not edit
+\newcommand{\supervisorList}[1]
+{
+  \ifthenelse{\equal{#1}{[Co-Supervisor's Name]}}{\mbox{\supervisorName}}{\mbox{\supervisorName}~and \mbox{\cosupervisorName}}
+}
+
+\newcommand{\supervisorListEst}[1]
+{
+  \ifthenelse{\equal{#1}{[Kaasjuhendaja nimi]}}{\mbox{\supervisorNameEst}}{\mbox{\supervisorNameEst}~ja \mbox{\cosupervisorNameEst}}
+}
+
+\newcommand{\supervisorWord}{
+    \ifthenelse{\equal{\cosupervisorNameEst}{[Kaasjuhendaja nimi]}}{juhendaja}{juhendajad}
+}
+
+% The licence should be automatically filled, please double check that everything is fine before submitting
+\ifthenelse{\equal{\lang}{ENG}}{
+  \ifthenelse{\equal{\authorNameTwo}{[Second Author name]}}
+  {
+  I \authorName
+
+  \begin{enumerate}[label*=\arabic*.]
+      \item Grant Tallinn University of Technology free licence (non-exclusive licence) for my thesis ``\thesisTitleEng'', supervised by \supervisorList{\cosupervisorName}
+      \begin{enumerate}[label*=\arabic*.]
+          \item to be reproduced for the purposes of preservation and electronic publication of the graduation thesis, incl. to be entered in the digital collection of the library of Tallinn University of Technology until expiry of the term of copyright;
+          \item to be published via the web of Tallinn University of Technology, incl. to be entered in the digital collection of the library of Tallinn University of Technology until expiry of the term of copyright
+      \end{enumerate}
+      \item I am aware that the author also retains the rights specified in clause 1 of the nonexclusive licence.
+      \item I confirm that granting the non-exclusive licence does not infringe other persons' intellectual property rights, the rights arising from the Personal Data Protection Act or rights arising from other legislation.
+  \end{enumerate}
+  }
+  {
+    We\ifthenelse{\equal{\authorNameThree}{[Third Author name]}}{ % Two authors
+          \authorName~and~\authorNameTwo
+        }{
+          \authorName,~\authorNameTwo~and~\authorNameThree
+        }
+
+    \begin{enumerate}[label*=\arabic*.]
+        \item Grant Tallinn University of Technology free licence (non-exclusive licence) for our thesis ``\thesisTitleEng'', supervised by \supervisorList{\cosupervisorName}
+        \begin{enumerate}[label*=\arabic*.]
+            \item to be reproduced for the purposes of preservation and electronic publication of the graduation thesis, incl. to be entered in the digital collection of the library of Tallinn University of Technology until expiry of the term of copyright;
+            \item to be published via the web of Tallinn University of Technology, incl. to be entered in the digital collection of the library of Tallinn University of Technology until expiry of the term of copyright
+        \end{enumerate}
+        \item We are aware that the authors also retain the rights specified in clause 1 of the nonexclusive licence.
+        \item We confirm that granting the non-exclusive licence does not infringe other persons' intellectual property rights, the rights arising from the Personal Data Protection Act or rights arising from other legislation.
+    \end{enumerate}
+  }
+} {
+  \ifthenelse{\equal{\authorNameTwo}{[Second Author name]}}
+  {
+    Mina, \authorNameEst
+
+    \begin{enumerate}[label*=\arabic*.]
+        \item Annan Tallinna Tehnikaülikoolile tasuta loa (lihtlitsentsi) enda loodud teose ``\thesisTitleEst'', mille \supervisorWord on \supervisorListEst{\cosupervisorNameEst}
+        \begin{enumerate}[label*=\arabic*.]
+            \item reprodutseerimiseks lõputöö säilitamise ja elektroonse avaldamise eesmärgil, sh Tallinna Tehnikaülikooli raamatukogu digikogusse lisamise eesmärgil kuni autoriõiguse kehtivuse tähtaja lõppemiseni;
+            \item üldsusele kättesaadavaks tegemiseks Tallinna Tehnikaülikooli veebikeskkonna kaudu, sealhulgas Tallinna Tehnikaülikooli raamatukogu digikogu kaudu kuni autoriõiguse kehtivuse tähtaja lõppemiseni.
+        \end{enumerate}
+        \item Olen teadlik, et käesoleva lihtlitsentsi punktis 1 nimetatud õigused jäävad alles ka autorile.
+        \item Kinnitan, et lihtlitsentsi andmisega ei rikuta teiste isikute intellektuaalomandi ega isikuandmete kaitse seadusest ning muudest õigusaktidest tulenevaid õigusi.
+    \end{enumerate}
+  }
+  {
+    Meie,\ifthenelse{\equal{\authorNameThree}{[Third Author name]}}{ % Two authors
+              \authorName~ja~\authorNameTwo
+          }{
+              \authorName,~\authorNameTwo~ja~\authorNameThree
+          }       
+
+    \begin{enumerate}[label*=\arabic*.]
+        \item Anname Tallinna Tehnikaülikoolile tasuta loa (lihtlitsentsi) enda loodud teose ``\thesisTitleEst'', mille \supervisorWord on \supervisorListEst{\cosupervisorNameEst}
+        \begin{enumerate}[label*=\arabic*.]
+            \item reprodutseerimiseks lõputöö säilitamise ja elektroonse avaldamise eesmärgil, sh Tallinna Tehnikaülikooli raamatukogu digikogusse lisamise eesmärgil kuni autoriõiguse kehtivuse tähtaja lõppemiseni;
+            \item üldsusele kättesaadavaks tegemiseks Tallinna Tehnikaülikooli veebikeskkonna kaudu, sealhulgas Tallinna Tehnikaülikooli raamatukogu digikogu kaudu kuni autoriõiguse kehtivuse tähtaja lõppemiseni.
+        \end{enumerate}
+        \item Oleme teadlikud, et käesoleva lihtlitsentsi punktis 1 nimetatud õigused jäävad alles ka autoritele.
+        \item Kinnitame, et lihtlitsentsi andmisega ei rikuta teiste isikute intellektuaalomandi ega isikuandmete kaitse seadusest ning muudest õigusaktidest tulenevaid õigusi.
+    \end{enumerate}
+  }
+}
+
+% Defaults to current date. If you want a specific date, replace \signaturedate with hardcoded value
+\signatureDate
