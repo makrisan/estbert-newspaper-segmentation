@@ -12,7 +12,6 @@ Töö eesmärk on sarnaste katsetuste tegemine vabakasutuses olevatel eestikeels
 
 - **Peenhäälestatud mudel** ajalehtede artikliteks jaotamiseks (BERT-põhine). Mudel peab olema vabavaraline.
 - Artikleid võib eraldada nii ühe lehekülje piires kui ka proovida kokku tuua mitmele lehele jaotunud artiklite teksti.
-- **Kasutajaliides** mudeli kasutamiseks (RaRa CVI info).
 - **Andmeanalüüs** töö käigus valminud mudeli demonstreerimiseks.
 
 ## Käivitusjuhised
