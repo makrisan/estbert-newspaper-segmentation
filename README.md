@@ -2,6 +2,7 @@
 
 # Keelemudelipõhine ajaleheartiklite eraldamine ja temaatiline analüüs
 Autorid: Maria Kristina Andranikyan, Greteli Mittal
+
 Juhendaja: Innar Liiv, PhD, Tallinna Tehnikaülikool (TalTech), infotehnoloogia teaduskond
 
 ## Projekti kirjeldus
