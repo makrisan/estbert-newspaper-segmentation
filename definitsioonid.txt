@@ -1,0 +1,34 @@
+AutoTokenizer - teeb tekstist numbrid, mida mudel mõistab.
+    Näiteks: "See on ajaleht" -> [101, 2345, 123, 4567, 102]
+    Need on token id-d.
+
+AutoModel - laeb BERT mudeli ise.
+    See tähendab: neuronvõrgu arhitektuur, pretrained kaalud. 
+
+test_model_setupi tokeniseerimise näide: 
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    tekst: "See on näidistekst..." -> tokenid: ["See", "on", "näidis", "tekst", ...] --
+    -> token id-d: [101, 3452, 233, 5678, ...] -> PyTorch tensor: tensor([[101, 3452, ...]])
+
+test mudeli väljundi selgitus:
+    input_ids kuju: torch.Size([1, 11]) -> [batch_size, token_count], ehk see on 1 tekst ja 11 tokenit.
+    last_hidden_state kuju: torch.Size([1, 11, 768]) -> [batch_size, token_count, embedding_size], ehk 1 tekst, 11 tokenit, 768-dimensiooniline vektor
+
+KOMMENTAAR: Detailsemalt kirjeldades, meie eesmärk on leida artikli piirid, BERT annab tekst → tähendusvektorid
+            siis lisame väikse klassifikaatori: vektor → kas artikli algus?, näiteks 0 = ei, 1 = jah.
+
+PIPELINE:
+Meie lõplik pipeline hakkab välja nägema nii:
+PDF  (?)
+ ↓
+tekst
+ ↓
+tokenizer
+ ↓
+BERT
+ ↓
+embeddingud
+ ↓
+classifier
+ ↓
+artikli piir
