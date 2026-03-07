@@ -6,12 +6,11 @@ Juhendaja: Innar Liiv, PhD, Tallinna Tehnikaülikool (TalTech), infotehnoloogia 
 
 ## Projekti kirjeldus
 
-Töö eesmärk on sarnaste katsetuste tegemine vabakasutuses olevatel eestikeelsetel artikliteks segmenteerimata ajalehtedel. Kõige parema mudeli tööd tuleb demonstreerida andmeanalüüsiga, kus ajalehest eraldatakse artiklid vabalt valitud teemal ja hinnatakse nende terviklikkust.
+Projekti eesmärk on peenhäälestada eestikeelne BERT-mudel, et segmenteerida digiteeritud ja segmenteerimata ajalehtede tekst eraldi artikliteks. 
 
 ### Väljund
 
 - **Peenhäälestatud mudel** ajalehtede artikliteks jaotamiseks (BERT-põhine). Mudel peab olema vabavaraline.
-- Artikleid võib eraldada nii ühe lehekülje piires kui ka proovida kokku tuua mitmele lehele jaotunud artiklite teksti.
 - **Andmeanalüüs** töö käigus valminud mudeli demonstreerimiseks.
 
 ## Käivitusjuhised
