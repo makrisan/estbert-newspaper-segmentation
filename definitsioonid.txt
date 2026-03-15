@@ -36,7 +36,14 @@ Eeltöötluse reeglid:
 - üks treeningnäide = tekstiplokk/lõik
 - labelid = 1 artikli algus, 0 mitte
 - formaat = JSONL
-- väljad = id, text, label
+Kohustuslikud väljad: 
+id – treeningnäite identifikaator 
+text - tekstiploki sisu label – 
+märgend (0 või 1) 
+Võimalikud lisaväljad: 
+source - kust see tekst pärineb ("source": "postimees_1935_03_12")
+page - mis leheküljelt see tekst tuli ("page": 3)
+article_id - millisesse artiklisse see lõik kuulub ("article_id": "article_1")
 
 Näiteks:
 {"id": "ex1", "text": "RIIGIKOGUS ARUTATI EILE UUT SEADUST", "label": 1}
