@@ -1,12 +1,12 @@
 # Fdb version 4
-["biber main"] 1773337607.7141 "main.bcf" "main.bbl" "main" 1773568652.51251 0
-  "main.bcf" 1773568650 107882 d59d5ecd8a8756fcaf398ea00e787c38 "pdflatex"
-  "references.bib" 1773337428 625 d35790f682a05f51eed0ad5673f7a74d ""
+["biber main"] 1773574082.30423 "main.bcf" "main.bbl" "main" 1773574107.59209 0
+  "main.bcf" 1773574105 107882 d59d5ecd8a8756fcaf398ea00e787c38 "pdflatex"
+  "references.bib" 1773574080 3151 373277e1b572b59de32abb60d5bd0aa8 ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1773568640.90581 "c:/Users/grete/Desktop/iaib/loputoo/main.tex" "main.pdf" "main" 1773568652.51562 0
+["pdflatex"] 1773574097.90546 "c:/Users/grete/Desktop/iaib/loputoo/main.tex" "main.pdf" "main" 1773574107.59458 0
   "C:/Users/grete/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1772276400 121097 8af9dafefbd8dba488fad9fdf644f929 ""
   "C:/Users/grete/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1772271790 13333487 f6ab36780f60e5edb8427069ca517926 ""
   "C:/Users/grete/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc" 1256929440 2375 baa924870cfb487815765f9094cf3728 ""
@@ -305,21 +305,21 @@
   "figures/penguins/tux1.png" 1773337428 495422 5c9e85ee8171ffb1a7f614d814e859b6 ""
   "figures/penguins/tux2.png" 1773337428 569956 6a35cb39acbcbd5d66ed48524b6f300c ""
   "figures/taltech.jpg" 1773337428 977404 d1abce57f3f5c83ccaadd36388cd7fb2 ""
-  "main.aux" 1773568650 6180 e34100a71f5f150749426c33fab1f874 "pdflatex"
-  "main.bbl" 1773337613 5007 9d9b9fa00cc06355520f5e096b3c5488 "biber main"
-  "main.lof" 1773568650 465 e8cb9ca98701c9835c49186d6b8b7673 "pdflatex"
-  "main.lot" 1773568650 304 1ee2107440ff741c120d0a5422601b5c "pdflatex"
-  "main.out" 1773568650 2661 77df6c4272a372b5dc7a470361387d81 "pdflatex"
-  "main.run.xml" 1773568650 2366 afc208ce0afab4921c71eee4e181e717 "pdflatex"
+  "main.aux" 1773574105 6180 e34100a71f5f150749426c33fab1f874 "pdflatex"
+  "main.bbl" 1773574097 5007 9d9b9fa00cc06355520f5e096b3c5488 "biber main"
+  "main.lof" 1773574105 465 e8cb9ca98701c9835c49186d6b8b7673 "pdflatex"
+  "main.lot" 1773574105 304 1ee2107440ff741c120d0a5422601b5c "pdflatex"
+  "main.out" 1773574105 2661 77df6c4272a372b5dc7a470361387d81 "pdflatex"
+  "main.run.xml" 1773574105 2366 afc208ce0afab4921c71eee4e181e717 "pdflatex"
   "main.tex" 1773337428 3286 55900f829f6c89d1aa81a9f9276c9e25 ""
-  "main.toc" 1773568650 1360 6694f3c2c9873d3cf6578809e7cb4f4d "pdflatex"
+  "main.toc" 1773574105 1360 6694f3c2c9873d3cf6578809e7cb4f4d "pdflatex"
   "misc/abstract-english.tex" 1773337428 499 bbee88bff991170e12ae48b02ca9d432 ""
   "misc/abstract-estonian.tex" 1773337428 542 9eb79f3f8a692e9dff5abf7e78fc53a2 ""
   "misc/authordeclaration.tex" 1773564823 2377 effe305b87e45c3b422d79ccc7680b78 ""
   "misc/licence.tex" 1773337428 5796 4d289975caabce0d1be3c44a8260be35 ""
   "misc/misc_main.tex" 1773337428 2602 56514fe61ad20637db39f3613061f03a ""
-  "misc/terms_abbreviations.tex" 1773568614 752 7334540b8da13c1d93add19bdb73d3ff ""
-  "misc/titlepage.aux" 1773568647 5000 6cb9d2a44b4507a8ae6b012514d28ab5 "pdflatex"
+  "misc/terms_abbreviations.tex" 1773574080 824 0df8f1a48003470f0ed55f254ecdf45a ""
+  "misc/titlepage.aux" 1773574103 5000 6cb9d2a44b4507a8ae6b012514d28ab5 "pdflatex"
   "misc/titlepage.tex" 1773337429 3733 dac73c68e918767726bbcd5b012c54ef ""
   "thesis.sty" 1773337428 11834 71354aeda7ce881c4d131d7fe097221a ""
   (generated)
