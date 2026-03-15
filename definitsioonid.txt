@@ -19,8 +19,7 @@ KOMMENTAAR: Detailsemalt kirjeldades, meie eesmärk on leida artikli piirid, BER
 
 PIPELINE:
 Meie lõplik pipeline hakkab välja nägema nii:
-PDF  (?)
- ↓
+
 tekst
  ↓
 tokenizer
@@ -32,3 +31,13 @@ embeddingud
 classifier
  ↓
 artikli piir
+
+Eeltöötluse reeglid:
+- üks treeningnäide = tekstiplokk/lõik
+- labelid = 1 artikli algus, 0 mitte
+- formaat = JSONL
+- väljad = id, text, label
+
+Näiteks:
+{"id": "ex1", "text": "RIIGIKOGUS ARUTATI EILE UUT SEADUST", "label": 1}
+{"id": "ex2", "text": "Arutelu kestis hiliste õhtutundideni.", "label": 0}
