@@ -12,19 +12,25 @@
 % How to use: Add a \label{chapter:<part_name>} for each chapter to indicate its part. 
 % These labels ensure consistency and allow automated tests to validate the thesis structure.
 
-\chapter{Introduction}\label{chapter:introduction} % This command creates a numbered chapter titled "Sissejuhatus" (Estonian for "Introduction"). The \label{chapter:introduction} assigns a label to the chapter, allowing you to reference it later (e.g., \ref{chapter:introduction}).
+\chapter{Sissejuhatus}\label{chapter:introduction} % This command creates a numbered chapter titled "Sissejuhatus" (Estonian for "Introduction"). The \label{chapter:introduction} assigns a label to the chapter, allowing you to reference it later (e.g., \ref{chapter:introduction}).
 \input{chapters/introduction} %  This command inserts the content from the file introduction.tex located in the chapters folder.
 
-\chapter{First Chapter}\label{chapter:method}
-\input{chapters/first_chapter.tex}
+\chapter{Taust}\label{chapter:method}
+\input{chapters/background.tex}
 
-\chapter{Second Chapter}\label{chapter:results}
-\input{chapters/second_chapter.tex}
+\chapter{Metoodika ja andmestik}\label{chapter:method}
+\input{chapters/method.tex}
 
-\chapter{Third Chapter}\label{chapter:discussion}
-\input{chapters/third_chapter.tex}
+\chapter{Katsed ja hindamismeetodid}\label{chapter:discussion}
+\input{chapters/experiments.tex}
 
-\chapter{Summary}\label{chapter:summary} 
+\chapter{Andmeanalüüs ja demonstreerimine}\label{chapter:discussion}
+\input{chapters/analysis.tex}
+
+\chapter{Tulemused ja järeldused}\label{chapter:result}
+\input{chapters/result.tex}
+
+\chapter{Kokkuvõte}\label{chapter:summary} 
 \input{chapters/summary.tex}
 
 \zlabel{lastpagetocount}        % DO NOT REMOVE! Used for counting number of pages of main text
