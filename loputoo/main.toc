@@ -1,16 +1,18 @@
 \babel@toc {estonian}{}\relax 
 \babel@toc {estonian}{}\relax 
-\contentsline {chapter}{\numberline {1}Introduction}{9}{chapter.1}%
+\contentsline {chapter}{\numberline {1}Sissejuhatus}{9}{chapter.1}%
 \contentsline {subsubsection}{Using Part Labels}{10}{figure.caption.9}%
-\contentsline {chapter}{\numberline {2}First Chapter}{12}{chapter.2}%
+\contentsline {chapter}{\numberline {2}Taust}{12}{chapter.2}%
 \contentsline {section}{\numberline {2.1}First Section of the First Chapter}{12}{section.2.1}%
 \contentsline {subsection}{\numberline {2.1.1}First Subsection}{12}{subsection.2.1.1}%
 \contentsline {subsubsection}{First Subsubsection}{12}{subsection.2.1.1}%
 \contentsline {section}{\numberline {2.2}Second Section of the First Chapter}{12}{section.2.2}%
-\contentsline {chapter}{\numberline {3}Second Chapter}{13}{chapter.3}%
-\contentsline {chapter}{\numberline {4}Third Chapter}{14}{chapter.4}%
-\contentsline {chapter}{\numberline {5}Summary}{15}{chapter.5}%
-\contentsline {chapter}{Kasutatud kirjandus}{16}{section*.10}%
-\contentsline {chapter}{Lisa~1 -- Lihtlitsents lõputöö reprodutseerimiseks ja lõputöö üldsusele kättesaadavaks tegemiseks}{17}{section*.12}%
-\contentsline {chapter}{Lisa~2 -- Something}{18}{section*.14}%
-\contentsline {chapter}{Lisa~3 -- Something Else}{19}{section*.16}%
+\contentsline {chapter}{\numberline {3}Metoodika ja andmestik}{13}{chapter.3}%
+\contentsline {chapter}{\numberline {4}Katsed ja hindamismeetodid}{14}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Andmeanalüüs ja demonstreerimine}{15}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Tulemused ja järeldused}{16}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Kokkuvõte}{17}{chapter.7}%
+\contentsline {chapter}{Kasutatud kirjandus}{18}{section*.10}%
+\contentsline {chapter}{Lisa~1 -- Lihtlitsents lõputöö reprodutseerimiseks ja lõputöö üldsusele kättesaadavaks tegemiseks}{19}{section*.12}%
+\contentsline {chapter}{Lisa~2 -- Something}{20}{section*.14}%
+\contentsline {chapter}{Lisa~3 -- Something Else}{21}{section*.16}%
