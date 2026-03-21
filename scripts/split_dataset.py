@@ -30,6 +30,7 @@ def main():
     positives = [x for x in data if x["label"] == 1]
     negatives = [x for x in data if x["label"] == 0]
 
+    # kasutame andmete segamiseks, muidu overfitting
     random.shuffle(positives)
     random.shuffle(negatives)
 
