@@ -1,23 +1,34 @@
-from transformers import AutoTokenizer, AutoModel
+from src.model_setup import load_model
 import torch
 
-MODEL_NAME = "tartuNLP/EstBERT"
-
 def main():
-    print(f"Laen mudelit: {MODEL_NAME}")
+    tokenizer, model = load_model()
+    print("Tokenizer ja mudel laetud edukalt.\n")
 
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)  ## Laeb tokenizeri
-    model = AutoModel.from_pretrained(MODEL_NAME) # Laeb mudeli
+    texts = [
+        "See on näidistekst digiteeritud Eesti ajalehest.",
+        "Gorbatšov päri Eesti plaanidega rahvarinde kongressil."
+    ]
 
-    text = "See on näidistekst digiteeritud Eesti ajalehest."  # Testandmed
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)  # Tokeniseerimine
+    for i, text in enumerate(texts):
+        print(f"--- Näide {i+1} ---")
+        inputs = tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=512
+        )
 
-    with torch.no_grad():  # Testime mudelit
-        outputs = model(**inputs)
+        with torch.no_grad():
+            outputs = model(**inputs)
 
-    print("Mudel laeti edukalt.")
-    print("input_ids kuju:", inputs["input_ids"].shape)
-    print("last_hidden_state kuju:", outputs.last_hidden_state.shape)
+        print("Tekst:             ", text)
+        print("input_ids kuju:    ", inputs["input_ids"].shape)
+        print("attention_mask kuju:", inputs["attention_mask"].shape)
+        print("logits kuju:       ", outputs.logits.shape)
+        print("logits väärtused:  ", outputs.logits)
+        print()
 
 if __name__ == "__main__":
     main()
