@@ -48,3 +48,39 @@ article_id - millisesse artiklisse see lõik kuulub ("article_id": "article_1")
 Näiteks:
 {"id": "ex1", "text": "RIIGIKOGUS ARUTATI EILE UUT SEADUST", "label": 1}
 {"id": "ex2", "text": "Arutelu kestis hiliste õhtutundideni.", "label": 0}
+
+
+sample_data artiklid: 
+Artikkel	                Read	    label=1
+---------------------------------------------
+Skautlik laager	            1–8	        #1
+Gorbatšov päri	            9–13	    #9
+Moskva toetab vabatsooni	14–20	    #14
+Vastuoksne (arvamuslugu)	21–31	    #21
+Enn Tarto vabastatakse	    32–39	    #32
+Kotkajärve autahvel	        40–44	    #40
+Mälestussammas Ekströmile	45–50	    #45
+
+
+# =============================================================================
+# preprocess.py
+# =============================================================================
+# Eesmärk:
+#   Puhastada ajalehetekstid enne tokeniseerimist ja mudelisse sisestamist.
+#
+# Rakendatavad reeglid:
+#   1. strip()         — eemaldab teksti algusest ja lõpust tühikud ja reavahetused
+#   2. \s+ -> " "      — asendab mitu järjestikust tühimärki (tühik, tab, reavahe)
+#                        ühe tühikuga
+#
+# Näide:
+#   Enne:  "  ESIMENE SKAUTLIK   noortelaager,  kus jäädvustatud  on eesti. "
+#   Pärast: "ESIMENE SKAUTLIK noortelaager, kus jäädvustatud on eesti."
+#
+# Märkus:
+#   Praegune eeltöötlus on tahtlikult minimaalne — eesmärk on säilitada
+#   originaalteksti sisu ja struktuur, muuta ainult tühikute formaati.
+#   Täiendavad sammud (nt kirjavahemärkide normaliseerimine, OCR-vigade
+#   parandamine) lisatakse vajadusel hiljem.
+# =============================================================================
+
