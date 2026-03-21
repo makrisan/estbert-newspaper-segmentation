@@ -18,15 +18,6 @@ ENV/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data files
-data/
-*.csv
-*.json
-*.pkl
-*.pickle
-*.h5
-*.hdf5
-
 # Model files
 models/*.pt
 models/*.pth
