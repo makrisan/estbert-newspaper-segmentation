@@ -1,6 +1,12 @@
 import json
 import os
-from preprocess import clean_text
+import torch
+from torch.utils.data import Dataset
+from src.preprocess import clean_text
+
+# MAX_LENGTH määrab kui pikad tekstid tokenizer aktsepteerib
+# EstBERT max on 512, kasutame sama
+MAX_LENGTH = 512
 
 def load_jsonl(path):
     if not os.path.exists(path):
@@ -33,9 +39,53 @@ def load_jsonl(path):
     return data
 
 
-if __name__ == "__main__":
-    data = load_jsonl("data/sample/sample_dataset.jsonl")
-    print(f"Laetud {len(data)} kirjet\n")
+class ArticleDataset(Dataset):
+    # võtab sisse load_jsonl() väljundi ja tokenizeri
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
 
-    for item in data[:3]:
-        print(item)
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+
+        # tokeniseerime teksti
+        encoded = self.tokenizer(
+            item["text"],
+            max_length=MAX_LENGTH,  # maksimaalne pikkus
+            truncation=True,        # kui pikem kui 512, lõika ära
+            padding="max_length",   # kui lühem kui 512, täida nullidega
+            return_tensors="pt"     # tagasta PyTorch tensorina
+        )
+
+        return {
+            # squeeze eemaldab ülearuse dimensiooni: [1, 512] -> [512]
+            "input_ids": encoded["input_ids"].squeeze(0),
+            "attention_mask": encoded["attention_mask"].squeeze(0),
+            "labels": torch.tensor(item["label"], dtype=torch.long)
+        }
+
+
+if __name__ == "__main__":
+    from src.model_setup import load_model
+    from torch.utils.data import DataLoader
+
+    # laeme andmed ja mudeli
+    data = load_jsonl("data/sample/sample_dataset.jsonl")
+    tokenizer, _ = load_model()
+
+    # loome dataseti ja dataloaderi
+    dataset = ArticleDataset(data, tokenizer)
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+    # kontrollime esimest batchi
+    batch = next(iter(dataloader))
+
+    print(f"Dataset suurus: {len(dataset)} kirjet")
+    print(f"Batch suurus:   {batch['input_ids'].shape[0]}\n")
+    print(f"input_ids kuju:     {batch['input_ids'].shape}")
+    print(f"attention_mask kuju: {batch['attention_mask'].shape}")
+    print(f"labels kuju:        {batch['labels'].shape}")
+    print(f"labels väärtused:   {batch['labels']}")
