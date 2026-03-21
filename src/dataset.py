@@ -1,6 +1,6 @@
 import json
 import os
-from preprocess import clean_text
+from src.preprocess import clean_text
 
 def load_jsonl(path):
     if not os.path.exists(path):
