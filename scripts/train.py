@@ -1,44 +1,78 @@
+from src.dataset import load_jsonl, NewsDataset
 from src.model_setup import load_model
-from src.dataset import load_jsonl
-import torch
+import torch, os
+from torch.utils.data import DataLoader
 
-DATA_PATH = "data/sample/sample_dataset.jsonl"
+# --- PATHID ---
+TRAIN_PATH = "data/sample/train.jsonl"
+VAL_PATH = "data/sample/val.jsonl"
 
-print("1. Skript käivitus")
+# --- HYPERPARAMETERS ---
+BATCH_SIZE = 4
+EPOCHS = 2
+LEARNING_RATE = 2e-5
 
-# loe andmed failist sisse
-data = load_jsonl(DATA_PATH)
-print("2. Andmed loetud failist sisse")
-print("Näidete arv:", len(data))
+def main():
+    print("1. Alustan treeningut")
 
-# võta esimene näide datasetist
-sample_text = data[0]["text"]
-sample_label = data[0]["label"]
+    # --- LOAD DATA ---
+    train_data = load_jsonl(TRAIN_PATH)
+    val_data = load_jsonl(VAL_PATH)
 
-print("3. Esimene näidistekst:", sample_text)
-print("4. Esimese näite label:", sample_label)
+    print("Train size:", len(train_data))
+    print("Val size:", len(val_data))
 
-# lae tokenizer ja mudel
-tokenizer, model = load_model()
-print("5. Tokenizer ja mudel laetud")
+    # --- LOAD MODEL ---
+    tokenizer, model = load_model()
 
-# tokeniseeri tekst
-inputs = tokenizer(
-    sample_text,
-    return_tensors="pt",
-    truncation=True,
-    padding=True
-)
-print("6. Tekst tokeniseeritud")
+    # --- DATASET ---
+    train_dataset = NewsDataset(train_data, tokenizer)
+    val_dataset = NewsDataset(val_data, tokenizer)
 
-# tee forward pass
-outputs = model(**inputs)
-print("7. Forward pass tehtud")
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
 
-# prindi väljund
-print("Input IDs:", inputs["input_ids"])
-print("Attention mask:", inputs["attention_mask"])
-print("Logits:", outputs.logits)
+    # --- DEVICE ---
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-predicted_label = torch.argmax(outputs.logits, dim=1)
-print("Predicted label:", predicted_label.item())
+    # --- OPTIMIZER ---
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+
+    # --- TRAIN LOOP ---
+    model.train()
+
+    for epoch in range(EPOCHS):
+        print(f"\nEPOCH {epoch+1}")
+
+        total_loss = 0
+
+        for batch in train_loader:
+            optimizer.zero_grad()
+
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels
+            )
+
+            loss = outputs.loss
+            total_loss += loss.item()
+
+            loss.backward()
+            optimizer.step()
+
+        avg_loss = total_loss / len(train_loader)
+        print("Train loss:", avg_loss)
+
+    # --- SAVE MODEL ---
+    os.makedirs("models", exist_ok=True)
+    torch.save(model.state_dict(), "models/model.pt")
+    print("Mudeli checkpoint salvestatud!")
+
+if __name__ == "__main__":
+    main()
