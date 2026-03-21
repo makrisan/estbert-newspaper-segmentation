@@ -8,6 +8,6 @@ def load_model():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForSequenceClassification.from_pretrained(
         MODEL_NAME,
-        num_labels=2
+        num_labels=2  # 0 või 1
     )
     return tokenizer, model

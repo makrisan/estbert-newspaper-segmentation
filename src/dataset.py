@@ -68,6 +68,33 @@ class ArticleDataset(Dataset):
         }
 
 
+class NewsDataset(torch.utils.data.Dataset):
+    def __init__(self, data, tokenizer, max_length=128):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+
+        encoding = self.tokenizer(
+            item["text"],
+            truncation=True,
+            padding="max_length",
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+
+        return {
+            "input_ids": encoding["input_ids"].squeeze(),
+            "attention_mask": encoding["attention_mask"].squeeze(),
+            "labels": torch.tensor(item["label"], dtype=torch.long)
+        }
+
+
 if __name__ == "__main__":
     from src.model_setup import load_model
     from torch.utils.data import DataLoader
