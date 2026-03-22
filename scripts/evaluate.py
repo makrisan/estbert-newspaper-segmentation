@@ -81,7 +81,7 @@ def main():
     print("Kuna testandmestik on väga väike, tuleb tulemusi tõlgendada ettevaatlikult.")
     print("Samas annab see esialgse hinnangu, kas treeningpipeline töötab ja mudel õpib midagi kasulikku.")
 
-    # maatriksi lugemine: [[1 2][3 4]]
+    # maatriksi lugemine: [[1 2][3 4]] [[TN  FP][FN  TP]]
     # 1 negatiivset näidet ennustati õigesti negatiivseks
     # 2 negatiivset näidet ennustati valesti positiivseks
     # 3 positiivne näide ennustati valesti negatiivseks
