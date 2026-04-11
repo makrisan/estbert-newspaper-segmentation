@@ -55,7 +55,7 @@
 {"id": "estdagbladet19881005_49", "text": "Avamisel viibisid eesti soomepoiste, sõjaveteranide ja uue vabadusvõitluse esindajad.", "label": 0}
 {"id": "estdagbladet19881005_50", "text": "Eesti Vabadussõjas võrsus rida sõjasangareid, kellede mälestus kestab.", "label": 0}
 
-// Teise ajalehe artiklid
+
 {"id": "estdagbladet20110316_1", "text": "Eesti oli majanduskasvult Rootsi järel teisel kohal", "label": 1}
 {"id": "estdagbladet20110316_2", "text": "Eurostati andmetel kasvas Euroopa Liidus eelmise aasta viimases kvartalis kõige kiiremas tempos Rootsi majandus, Eesti jäi auväärsele teisele kohale.", "label": 0}
 {"id": "estdagbladet20110316_3", "text": "Rootsi majandus kasvas aasta viimases kvartalis aastatagusega võrreldes 7,2 protsenti, Eestis 6,6 protsenti.", "label": 0}
@@ -98,7 +98,6 @@
 {"id": "estdagbladet20110316_35", "text": "Uusvaesed Eestis", "label": 1}
 {"id": "estdagbladet20110316_36", "text": "Uuringukeskus Klaster on Eestis läbi viinud küsitluse, mille peamiseks teemaks: “Kuidas hindate praegu oma majanduslikku toimetulekut?”", "label": 0}
 {"id": "estdagbladet20110316_37", "text": "Kolm inimest neljast peab oma rahalist seisu kehvaks või väga raskeks.", "label": 0}
-
 {"id": "estdagbladet20110316_38", "text": "Kuid samas mainitakse kohe juurde: “Seis on keeruline, kuid on raskemgi olnud.”", "label": 0}
 {"id": "estdagbladet20110316_39", "text": "Oma majanduslikku seisu hindab heaks või veel paremaks kõigest 24,1 % küsitletutest, seega on rahaliselt pingeline seis koguni 75,9 % vastanutest.", "label": 0}
 {"id": "estdagbladet20110316_40", "text": "Veidi optimistlikumad on toimetuleku suhtes 51-aastased ja eakamad.", "label": 0}
@@ -163,11 +162,10 @@
 {"id": "estdagbladet20110316_93", "text": "Ansipi sõnul otsustas Reformierakond oodatult IRL-i kasuks, kuna erakondade programmides on väga suur ühisosa.", "label": 0}
 {"id": "estdagbladet20110316_94", "text": "Tema hinnangul sooviksid ka valijad näha koalitsioonis IRL-i ja Reformierakonda rohkem kui Reformierakonda ja Sotsiaaldemokraatlikku Erakonda (SDE).", "label": 0}
 
-{"id": "estdagbladet20110316_95", "text": "Savisaar valmis koalitsiooni nimel erakonna juhtimisest taanduma", "label": 1}
-{"id": "estdagbladet20110316_96", "text": "Keskerakonna esimees Edgar Savisaar kinnitas pressiesindaja vahendusel, et on valmis Keskerakonna valitsuskoalitsiooni kaasamise nimel erakonna juhtimisest taanduma.", "label": 0}
-{"id": "estdagbladet20110316_97", "text": "“Muidugi see eeldab, et Keskerakonnal oleks võimalik uues võimuliidus tõepoolest realiseerida oma valijate huvisid.", "label": 0}
-{"id": "estdagbladet20110316_98", "text": "Meie ei võitle kolme või viie inimese ministriportfellide pärast, aga kindlasti on meile tähtsad need põhimõtteid, mida valimistel sai inimestele lubatud,” teatas Savisaar.", "label": 0}
-{"id": "estdagbladet20110316_98", "text": "“Ma ei tea, kas sotsid nõuavad veel mingeid muutusi Keskerakonna juhtkonnas või piisab neile Savisaare skalbist, aga mina ei hakka kindlasti selles küsimuses nendega sõdima.”", "label": 0}
+{"id": "estdagbladet20110316_95", "text": "NORRKÖPING", "label": 1}
+{"id": "estdagbladet20110316_96", "text": "Norrköpingi Eesti Pensionäride Ühing N. E.", "label": 0}
+{"id": "estdagbladet20110316_97", "text": "Pensionäride Ühingu aastakoosolek toimub neljapäeval, 17. märtsil kell 14 Matteusgärdenis.", "label": 0}
+{"id": "estdagbladet20110316_98", "text": "Teretulemast!", "label": 0}
 
 {"id": "estdagbladet20110316_99", "text": "Rahvas kandku raskust", "label": 1}
 {"id": "estdagbladet20110316_100", "text": "Riigisekretär Heiki Loot esitas valitsusele ülevaate 2007.-2011. aasta tegevusprogrammi täitmisest ning selle põhjal koostatud raporti valitsuse poliitikate arendamise peamistele väljakutsetele vastamisest.", "label": 0}
@@ -254,8 +252,8 @@
 {"id": "estdagbladet20110316_179", "text": "Homme julgelt Toompea mäkke astub saadik IGREK või IKS, nüüd pole enam tal karta, et küsitaks KUIDAS või MIKS.", "label": 0}
 {"id": "estdagbladet20110316_180", "text": "JAAK KODAR 12113 Tallinn, Kõivu põik 3 51 31 691 06.03.11.", "label": 0}
 
-{"id": "estdagbladet20110316_181", "text": "NORRKÖPING", "label": 1}
-{"id": "estdagbladet20110316_182", "text": "Norrköpingi Eesti Pensionäride Ühing N. E.", "label": 0}
-{"id": "estdagbladet20110316_183", "text": "Pensionäride Ühingu aastakoosolek toimub neljapäeval, 17. märtsil kell 14 Matteusgärdenis.", "label": 0}
-{"id": "estdagbladet20110316_184", "text": "Teretulemast!", "label": 0}
-// 35 artiklit täis!!!
+{"id": "estdagbladet20110316_181", "text": "Savisaar valmis koalitsiooni nimel erakonna juhtimisest taanduma", "label": 1}
+{"id": "estdagbladet20110316_182", "text": "Keskerakonna esimees Edgar Savisaar kinnitas pressiesindaja vahendusel, et on valmis Keskerakonna valitsuskoalitsiooni kaasamise nimel erakonna juhtimisest taanduma.", "label": 0}
+{"id": "estdagbladet20110316_183", "text": "“Muidugi see eeldab, et Keskerakonnal oleks võimalik uues võimuliidus tõepoolest realiseerida oma valijate huvisid.", "label": 0}
+{"id": "estdagbladet20110316_184", "text": "Meie ei võitle kolme või viie inimese ministriportfellide pärast, aga kindlasti on meile tähtsad need põhimõtteid, mida valimistel sai inimestele lubatud,” teatas Savisaar.", "label": 0}
+{"id": "estdagbladet20110316_185", "text": "“Ma ei tea, kas sotsid nõuavad veel mingeid muutusi Keskerakonna juhtkonnas või piisab neile Savisaare skalbist, aga mina ei hakka kindlasti selles küsimuses nendega sõdima.”", "label": 0}
