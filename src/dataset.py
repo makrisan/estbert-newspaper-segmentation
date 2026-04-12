@@ -1,12 +1,14 @@
+# MAX_LENGTH määrab kui pikad tekstid tokenizer aktsepteerib
+# EstBERT max on 512, kasutame sama
+
 import json
 import os
 import torch
 from torch.utils.data import Dataset
 from src.preprocess import clean_text
 
-# MAX_LENGTH määrab kui pikad tekstid tokenizer aktsepteerib
-# EstBERT max on 512, kasutame sama
 MAX_LENGTH = 512
+
 
 def load_jsonl(path):
     if not os.path.exists(path):
@@ -27,48 +29,31 @@ def load_jsonl(path):
                 print(f"Vigane JSON rida: {line}")
                 continue
 
-            if "id" not in item or "text" not in item or "label" not in item:
+            if "id" not in item or "label" not in item:
                 raise ValueError(f"Puuduv väli kirjes: {item}")
 
             if item["label"] not in [0, 1]:
                 raise ValueError(f"Vale label väärtus: {item['label']}")
 
-            item["text"] = clean_text(item["text"])
+            # vana formaat
+            if "text" in item:
+                item["text"] = clean_text(item["text"])
+
+            # uus triplet formaat
+            elif all(k in item for k in ["prev", "curr", "next"]):
+                item["prev"] = clean_text(item["prev"])
+                item["curr"] = clean_text(item["curr"])
+                item["next"] = clean_text(item["next"])
+
+            else:
+                raise ValueError(f"Kirjel puudub kas 'text' või triplet väljad: {item}")
+
             data.append(item)
 
     return data
 
 
-class ArticleDataset(Dataset):
-    # võtab sisse load_jsonl() väljundi ja tokenizeri
-    def __init__(self, data, tokenizer):
-        self.data = data
-        self.tokenizer = tokenizer
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        item = self.data[idx]
-
-        # tokeniseerime teksti
-        encoded = self.tokenizer(
-            item["text"],
-            max_length=MAX_LENGTH,  # maksimaalne pikkus
-            truncation=True,        # kui pikem kui 512, lõika ära
-            padding="max_length",   # kui lühem kui 512, täida nullidega
-            return_tensors="pt"     # tagasta PyTorch tensorina
-        )
-
-        return {
-            # squeeze eemaldab ülearuse dimensiooni: [1, 512] -> [512]
-            "input_ids": encoded["input_ids"].squeeze(0),
-            "attention_mask": encoded["attention_mask"].squeeze(0),
-            "labels": torch.tensor(item["label"], dtype=torch.long)
-        }
-
-
-class NewsDataset(torch.utils.data.Dataset):
+class NewsDataset(Dataset):
     def __init__(self, data, tokenizer, max_length=128):
         self.data = data
         self.tokenizer = tokenizer
@@ -80,8 +65,16 @@ class NewsDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
+        # kui vana formaat
+        if "text" in item:
+            model_input = item["text"]
+
+        # kui triplet formaat
+        else:
+            model_input = f"{item['prev']} [SEP] {item['curr']} [SEP] {item['next']}"
+
         encoding = self.tokenizer(
-            item["text"],
+            model_input,
             truncation=True,
             padding="max_length",
             max_length=self.max_length,
@@ -89,8 +82,8 @@ class NewsDataset(torch.utils.data.Dataset):
         )
 
         return {
-            "input_ids": encoding["input_ids"].squeeze(),
-            "attention_mask": encoding["attention_mask"].squeeze(),
+            "input_ids": encoding["input_ids"].squeeze(0),
+            "attention_mask": encoding["attention_mask"].squeeze(0),
             "labels": torch.tensor(item["label"], dtype=torch.long)
         }
 
@@ -99,20 +92,17 @@ if __name__ == "__main__":
     from src.model_setup import load_model
     from torch.utils.data import DataLoader
 
-    # laeme andmed ja mudeli
-    data = load_jsonl("data/sample/sample_dataset.jsonl")
+    data = load_jsonl("data/sample/triplet_dataset.jsonl")
     tokenizer, _ = load_model()
 
-    # loome dataseti ja dataloaderi
-    dataset = ArticleDataset(data, tokenizer)
+    dataset = NewsDataset(data, tokenizer)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
-    # kontrollime esimest batchi
     batch = next(iter(dataloader))
 
     print(f"Dataset suurus: {len(dataset)} kirjet")
     print(f"Batch suurus:   {batch['input_ids'].shape[0]}\n")
-    print(f"input_ids kuju:     {batch['input_ids'].shape}")
+    print(f"input_ids kuju:      {batch['input_ids'].shape}")
     print(f"attention_mask kuju: {batch['attention_mask'].shape}")
-    print(f"labels kuju:        {batch['labels'].shape}")
-    print(f"labels väärtused:   {batch['labels']}")
+    print(f"labels kuju:         {batch['labels'].shape}")
+    print(f"labels väärtused:    {batch['labels']}")
