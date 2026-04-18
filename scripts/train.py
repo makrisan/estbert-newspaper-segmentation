@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,18 +14,23 @@ from transformers import Trainer, TrainingArguments
 from src.dataset import load_jsonl, NewsDataset
 from src.model_setup import load_model
 
-# --- PATHS ---
-TRAIN_PATH = "data/sample/train.jsonl"
-VAL_PATH = "data/sample/val.jsonl"
+BASE_DIR = Path(__file__).resolve().parents[1]
 
-# --- HYPERPARAMETERS ---
+TRAIN_PATH = BASE_DIR / "data" / "sample" / "train.jsonl"
+VAL_PATH = BASE_DIR / "data" / "sample" / "val.jsonl"
+MODELS_DIR = BASE_DIR / "models"
+CHECKPOINT_DIR = MODELS_DIR / "checkpoints"
+FINAL_MODEL_DIR = MODELS_DIR / "final_model"
+STATE_DICT_PATH = MODELS_DIR / "model.pt"
+CLASS_DISTRIBUTION_PATH = BASE_DIR / "class_distribution.png"
+CONFUSION_MATRIX_PATH = BASE_DIR / "confusion_matrix.png"
+
 BATCH_SIZE = 4
 EPOCHS = 2
 LEARNING_RATE = 2e-5
 
 
 def calculate_class_stats(data):
-    """Arvutab klasside jaotuse ja klassi 1 kaalu."""
     labels = [item["label"] for item in data]
     num_zeros = labels.count(0)
     num_ones = labels.count(1)
@@ -35,8 +41,7 @@ def calculate_class_stats(data):
     return num_zeros, num_ones, ratio, class_1_weight
 
 
-def visualize_class_distribution(num_zeros, num_ones):
-    """Salvestab klasside jaotuse tulpdiagrammina."""
+def visualize_class_distribution(num_zeros, num_ones, save_path):
     plt.figure(figsize=(8, 5))
     plt.bar(
         ["Label 0 (Not Start)", "Label 1 (Article Start)"],
@@ -45,14 +50,13 @@ def visualize_class_distribution(num_zeros, num_ones):
     plt.ylabel("Count")
     plt.title("Class Distribution in Training Data")
     plt.tight_layout()
-    plt.savefig("class_distribution.png")
+    plt.savefig(save_path)
     plt.close()
 
-    print("Class distribution chart saved to class_distribution.png")
+    print(f"Class distribution chart saved to {save_path}")
 
 
 def compute_metrics(eval_pred):
-    """Arvutab accuracy, precision, recall ja F1."""
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
 
@@ -72,8 +76,7 @@ def compute_metrics(eval_pred):
     }
 
 
-def plot_confusion_matrix(cm, save_path="confusion_matrix.png"):
-    """Salvestab confusion matrixi pildina."""
+def plot_confusion_matrix(cm, save_path):
     fig, ax = plt.subplots(figsize=(8, 6))
 
     im = ax.imshow(cm, cmap="Blues")
@@ -100,8 +103,6 @@ def plot_confusion_matrix(cm, save_path="confusion_matrix.png"):
 
 
 class WeightedTrainer(Trainer):
-    """Trainer, mis kasutab kaalutud CrossEntropyLoss'i."""
-
     def __init__(self, class_weights, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
@@ -122,14 +123,12 @@ class WeightedTrainer(Trainer):
 def main():
     print("1. Alustan treeningut")
 
-    # --- LOAD DATA ---
-    train_data = load_jsonl(TRAIN_PATH)
-    val_data = load_jsonl(VAL_PATH)
+    train_data = load_jsonl(str(TRAIN_PATH))
+    val_data = load_jsonl(str(VAL_PATH))
 
     print("Train size:", len(train_data))
     print("Val size:", len(val_data))
 
-    # --- CLASS STATS ---
     num_zeros, num_ones, ratio, class_1_weight = calculate_class_stats(train_data)
 
     print("\nClass distribution:")
@@ -143,30 +142,25 @@ def main():
 
     print(f"  Class 1 weight for loss: {class_1_weight:.2f}\n")
 
-    # --- VISUALIZE CLASS DISTRIBUTION ---
-    visualize_class_distribution(num_zeros, num_ones)
+    visualize_class_distribution(num_zeros, num_ones, CLASS_DISTRIBUTION_PATH)
 
-    # --- LOAD MODEL ---
     tokenizer, model = load_model()
 
-    # --- DATASETS ---
     train_dataset = NewsDataset(train_data, tokenizer, max_length=512)
     val_dataset = NewsDataset(val_data, tokenizer, max_length=512)
 
-    # --- CLASS WEIGHTS ---
     class_weights = torch.tensor([1.0, class_1_weight], dtype=torch.float)
 
-    # --- TRAINING ARGUMENTS ---
     training_args = TrainingArguments(
-        output_dir="./models/checkpoints",
+        output_dir=str(CHECKPOINT_DIR),
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         per_device_eval_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
         weight_decay=0.01,
-        logging_dir="./logs",
+        logging_dir=str(BASE_DIR / "logs"),
         logging_steps=10,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="f1",
@@ -174,7 +168,6 @@ def main():
         save_total_limit=2,
     )
 
-    # --- TRAINER ---
     trainer = WeightedTrainer(
         class_weights=class_weights,
         model=model,
@@ -184,11 +177,9 @@ def main():
         compute_metrics=compute_metrics,
     )
 
-    # --- TRAIN ---
     print("\n=== Starting Training with Hugging Face Trainer ===\n")
     trainer.train()
 
-    # --- FINAL EVALUATION ---
     print("\n=== Final Evaluation on Validation Set ===")
     eval_results = trainer.evaluate()
 
@@ -198,14 +189,13 @@ def main():
     print(f"  Precision: {eval_results['eval_precision']:.4f}")
     print(f"  Recall:    {eval_results['eval_recall']:.4f}")
 
-    # --- CONFUSION MATRIX ---
     print("\n=== Generating Confusion Matrix ===")
     predictions = trainer.predict(val_dataset)
     y_pred = np.argmax(predictions.predictions, axis=-1)
     y_true = predictions.label_ids
 
     cm = confusion_matrix(y_true, y_pred)
-    plot_confusion_matrix(cm)
+    plot_confusion_matrix(cm, CONFUSION_MATRIX_PATH)
 
     print("\nConfusion Matrix:")
     print("                    Predicted")
@@ -213,12 +203,17 @@ def main():
     print(f"True Not Start:      {cm[0][0]:3d}   |   {cm[0][1]:3d}")
     print(f"True Article Start:  {cm[1][0]:3d}   |   {cm[1][1]:3d}")
 
-    # --- SAVE FINAL MODEL ---
-    os.makedirs("models", exist_ok=True)
-    model.save_pretrained("models/final_model")
-    tokenizer.save_pretrained("models/final_model")
+    os.makedirs(MODELS_DIR, exist_ok=True)
 
-    print("\n✓ Final model saved to models/final_model/")
+    # Hugging Face formaat
+    model.save_pretrained(FINAL_MODEL_DIR)
+    tokenizer.save_pretrained(FINAL_MODEL_DIR)
+
+    # state_dict formaat inference/evaluate jaoks
+    torch.save(model.state_dict(), STATE_DICT_PATH)
+
+    print(f"\n✓ Final model saved to {FINAL_MODEL_DIR}")
+    print(f"✓ State dict saved to {STATE_DICT_PATH}")
 
 
 if __name__ == "__main__":

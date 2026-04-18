@@ -1,35 +1,40 @@
+import html
+import json
 import os
 import re
-import json
+from pathlib import Path
+
 import torch
 
+from src.dataset import build_triplet_model_input
 from src.model_setup import load_model
 
-INPUT_PATH = "../data/raw/estdagbladet_20110316_lk.txt"
-OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_predicted.txt"
-MODEL_PATH = "../models/model.pt"
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+INPUT_PATH = BASE_DIR / "data" / "raw" / "estdagbladet_20110316_lk.txt"
+OUTPUT_PATH = BASE_DIR / "data" / "output" / "estdagbladet_20110316_lk_predicted.txt"
+DEBUG_PATH = BASE_DIR / "data" / "output" / "estdagbladet_20110316_lk_debug.jsonl"
+MODEL_PATH = BASE_DIR / "models" / "model.pt"
 
 MAX_LENGTH = 512
+BOUNDARY_THRESHOLD = 0.50
+MIN_SENTENCE_LENGTH = 3
 
 
 def extract_p_tags(html_text: str) -> list[str]:
     """
     Võtab <p>...</p> blokkidest teksti välja.
-    Säilitame OCR-müra, teeme ainult minimaalse puhastuse.
+    Kui <p> tag'e pole, tagastab kogu teksti ühe lõiguna.
     """
     paragraphs = re.findall(r"<p[^>]*>(.*?)</p>", html_text, flags=re.DOTALL | re.IGNORECASE)
 
+    if not paragraphs:
+        paragraphs = [html_text]
+
     cleaned = []
     for p in paragraphs:
-        # eemalda üleliigne HTML escaping
-        p = p.replace("&amp;", "&")
-        p = p.replace("&quot;", '"')
-        p = p.replace("&#39;", "'")
-
-        # eemalda võimalikud üleliigsed tagid lõigu seest
-        p = re.sub(r"<[^>]+>", "", p)
-
-        # whitespace normaliseerimine
+        p = html.unescape(p)
+        p = re.sub(r"<[^>]+>", " ", p)
         p = re.sub(r"\s+", " ", p).strip()
 
         if p:
@@ -40,53 +45,107 @@ def extract_p_tags(html_text: str) -> list[str]:
 
 def is_layout_noise(text: str) -> bool:
     """
-    Väga lihtne heuristika, et eemaldada ilmselge layout-müra.
-    Ära tee seda liiga agressiivseks.
+    Heuristika ilmselge layout-müra eemaldamiseks.
+    Ei tohi olla liiga agressiivne.
     """
-    noise_patterns = [
+    if not text:
+        return True
+
+    text = text.strip()
+
+    exact_patterns = [
         r"^EESTI PÄEVALEHT$",
         r"^ESTNISKA DAGBLADET$",
-        r"^Kolmapäev, \d{1,2}\. märts \d{4}$",
-        r"^\d+$",
-        r"^Sidan \d+$",
         r"^Estniska Dagbladet idag$",
+        r"^Sidan \d+$",
+        r"^\d+$",
+        r"^[IVXLCDM]+$",
+        r"^\(?\d+\)?$",
+        r"^\d+\.$",
+        r"^[\-_=*•·]+$",
+        r"^Kolmapäev, \d{1,2}\. märts \d{4}$",
     ]
 
-    for pattern in noise_patterns:
+    for pattern in exact_patterns:
         if re.match(pattern, text, flags=re.IGNORECASE):
             return True
+
+    # Väga lühike numbrite/sümbolite fragment
+    if len(text) <= 3 and re.fullmatch(r"[\W\d]+", text):
+        return True
+
+    # Väga palju numbreid/sümboleid ja vähe päris teksti
+    letters = sum(ch.isalpha() for ch in text)
+    non_letters = len(text) - letters
+    if len(text) > 0 and letters < 3 and non_letters >= letters:
+        return True
 
     return False
 
 
 def split_into_sentences(paragraphs: list[str]) -> list[str]:
     """
-    Lihtne lausejagamine.
-    OCR tõttu ideaalne ei ole, aga prototüübi jaoks sobib.
+    Mõõdukalt parem lausejagamine OCR-tekstile.
+    Endiselt heuristiline, aga parem kui täiesti toores split.
     """
     sentences = []
+
+    abbreviations = [
+        "hr.", "pr.", "dr.", "jne.", "jm.", "jt.", "s.t.", "st.", "nr.", "lk."
+    ]
 
     for paragraph in paragraphs:
         if is_layout_noise(paragraph):
             continue
 
-        # jaga lausete lõppude pealt
-        parts = re.split(r"(?<=[.!?])\s+", paragraph)
+        text = paragraph.strip()
 
+        for abbr in abbreviations:
+            text = text.replace(abbr, abbr.replace(".", "<DOT>"))
+
+        parts = re.split(r"(?<=[.!?])\s+", text)
+
+        restored_parts = []
         for part in parts:
-            part = part.strip()
-            if part:
-                sentences.append(part)
+            part = part.replace("<DOT>", ".")
+            part = re.sub(r"\s+", " ", part).strip()
+
+            if not part:
+                continue
+
+            if is_layout_noise(part):
+                continue
+
+            restored_parts.append(part)
+
+        merged_parts = []
+        for part in restored_parts:
+            if (
+                merged_parts
+                and len(part) < MIN_SENTENCE_LENGTH
+            ):
+                merged_parts[-1] = merged_parts[-1] + " " + part
+            else:
+                merged_parts.append(part)
+
+        sentences.extend(merged_parts)
 
     return sentences
 
 
-def build_model_input(prev_text: str, curr_text: str, next_text: str) -> str:
+def load_trained_model(model_path: Path):
     """
-    AJUTINE lahendus kuni Dataset klass / triplet tokenizer saab lõplikult valmis.
-    Hiljem saad selle asendada päris prev-curr-next tokeniseerimisega.
+    Laeb base tokenizeri + mudeli ja seejärel fine-tuned kaalud.
+    Eeldab, et model.pt sisaldab state_dict'i.
     """
-    return f"{prev_text} [SEP] {curr_text} [SEP] {next_text}"
+    if not model_path.exists():
+        raise FileNotFoundError(f"Modeli faili ei leitud: {model_path}")
+
+    tokenizer, model = load_model()
+    state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+    model.load_state_dict(state_dict)
+
+    return tokenizer, model
 
 
 def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[dict]:
@@ -95,6 +154,7 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
     kas piir on prev ja curr vahel.
     """
     results = []
+    sep_token = tokenizer.sep_token if tokenizer.sep_token else "[SEP]"
 
     for i, curr in enumerate(sentences):
         prev_text = sentences[i - 1] if i > 0 else ""
@@ -102,8 +162,14 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
 
         if i == 0:
             pred_label = 0
+            prob_boundary = 0.0
         else:
-            model_input = build_model_input(prev_text, curr, next_text)
+            model_input = build_triplet_model_input(
+                prev_text,
+                curr,
+                next_text,
+                sep_token=sep_token
+            )
 
             encoding = tokenizer(
                 model_input,
@@ -122,24 +188,28 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
                     attention_mask=attention_mask
                 )
 
-            pred_label = torch.argmax(outputs.logits, dim=1).item()
+            probs = torch.softmax(outputs.logits, dim=1)
+            prob_boundary = probs[0, 1].item()
+            pred_label = 1 if prob_boundary >= BOUNDARY_THRESHOLD else 0
 
         results.append({
+            "index": i,
             "prev": prev_text,
             "curr": curr,
             "next": next_text,
-            "pred_label": pred_label
+            "pred_label": pred_label,
+            "prob_boundary": round(prob_boundary, 6)
         })
 
     return results
 
 
-def write_tagged_output(results: list[dict], output_path: str):
+def write_tagged_output(results: list[dict], output_path: Path):
     """
     Kirjutab väljundi faili.
     Kui pred_label == 1, alustame uut <p> plokki.
     """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(output_path.parent, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
         article_started = False
@@ -160,10 +230,18 @@ def write_tagged_output(results: list[dict], output_path: str):
             f.write("</p>\n")
 
 
+def write_debug_output(results: list[dict], debug_path: Path):
+    os.makedirs(debug_path.parent, exist_ok=True)
+
+    with open(debug_path, "w", encoding="utf-8") as f:
+        for item in results:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+
 def main():
     print("1. Loen sisendfaili")
 
-    if not os.path.exists(INPUT_PATH):
+    if not INPUT_PATH.exists():
         raise FileNotFoundError(f"Faili ei leitud: {INPUT_PATH}")
 
     with open(INPUT_PATH, "r", encoding="utf-8") as f:
@@ -187,8 +265,7 @@ def main():
     print("Kokku lauseid pärast eeltöötlust:", len(all_sentences))
 
     print("2. Laen mudeli")
-    tokenizer, model = load_model()
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
+    tokenizer, model = load_trained_model(MODEL_PATH)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -200,11 +277,23 @@ def main():
     total_boundaries = sum(x["pred_label"] for x in results)
     print("Leitud piire:", total_boundaries)
 
+    found_boundary_examples = [x for x in results if x["pred_label"] == 1][:10]
+    if found_boundary_examples:
+        print("\nEsimesed boundary ennustused:")
+        for item in found_boundary_examples:
+            print(
+                f"[{item['index']}] prob={item['prob_boundary']:.4f} | curr={item['curr'][:120]}"
+            )
+    else:
+        print("\nBoundary ennustusi ei leitud.")
+
     print("4. Salvestan väljundi")
     write_tagged_output(results, OUTPUT_PATH)
+    write_debug_output(results, DEBUG_PATH)
 
     print("Valmis.")
     print("Väljundfail:", OUTPUT_PATH)
+    print("Debug-fail:", DEBUG_PATH)
 
 
 if __name__ == "__main__":
