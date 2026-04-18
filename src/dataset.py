@@ -1,6 +1,3 @@
-# MAX_LENGTH määrab kui pikad tekstid tokenizer aktsepteerib
-# EstBERT max on 512, kasutame sama
-
 import json
 import os
 
@@ -9,6 +6,8 @@ from torch.utils.data import Dataset
 
 from src.preprocess import clean_text
 
+# MAX_LENGTH määrab, kui pikad tekstid tokenizer mudelile annab.
+# EstBERT maksimaalne sisendpikkus on 512 tokenit.
 MAX_LENGTH = 512
 
 
@@ -37,7 +36,7 @@ def load_jsonl(path):
             if item["label"] not in [0, 1]:
                 raise ValueError(f"Vale label väärtus: {item['label']}")
 
-            # vana formaat
+            # Vana formaat
             if "text" in item:
                 item["text"] = clean_text(item["text"])
 
