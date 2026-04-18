@@ -40,7 +40,7 @@ def load_jsonl(path):
             if "text" in item:
                 item["text"] = clean_text(item["text"])
 
-            # uus triplet formaat
+            # Triplet-formaat
             elif all(k in item for k in ["prev", "curr", "next"]):
                 item["prev"] = clean_text(item["prev"])
                 item["curr"] = clean_text(item["curr"])
@@ -61,6 +61,7 @@ class NewsDataset(Dataset):
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.sep_token = tokenizer.sep_token if tokenizer.sep_token else "[SEP]"
 
     def __len__(self):
         return len(self.data)
@@ -68,16 +69,17 @@ class NewsDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        # Triplet-formaat: eelmine, praegune ja järgmine lause
+        # Triplet-formaat: eelmine, praegune, järgmine
         if all(k in item for k in ["prev", "curr", "next"]):
             prev_text = item["prev"] or ""
             curr_text = item["curr"] or ""
             next_text = item["next"] or ""
 
-            sep = self.tokenizer.sep_token if self.tokenizer.sep_token else "[SEP]"
-            model_input = f"{prev_text} {sep} {curr_text} {sep} {next_text}"
+            model_input = (
+                f"{prev_text} {self.sep_token} {curr_text} {self.sep_token} {next_text}"
+            )
 
-        # Vana formaat
+        # Vana ühe tekstiväljaga formaat
         else:
             model_input = item.get("text", "")
 
