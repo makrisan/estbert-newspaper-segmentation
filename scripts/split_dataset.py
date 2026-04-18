@@ -4,15 +4,18 @@
 # TEST_RATIO = 0.1 → lõplik hindamine
 
 import json
+from pathlib import Path
 
 from sklearn.model_selection import train_test_split
 
 from src.dataset import load_jsonl
 
-DATA_PATH = "../data/sample/triplet_dataset.jsonl"
-TRAIN_PATH = "../data/sample/train.jsonl"
-VAL_PATH = "../data/sample/val.jsonl"
-TEST_PATH = "../data/sample/test.jsonl"
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+DATA_PATH = BASE_DIR / "data" / "sample" / "triplet_dataset.jsonl"
+TRAIN_PATH = BASE_DIR / "data" / "sample" / "train.jsonl"
+VAL_PATH = BASE_DIR / "data" / "sample" / "val.jsonl"
+TEST_PATH = BASE_DIR / "data" / "sample" / "test.jsonl"
 
 
 def save_jsonl(data, path):
@@ -35,11 +38,9 @@ def label_stats(dataset, name):
 
 
 def main():
-    data = load_jsonl(DATA_PATH)
-
+    data = load_jsonl(str(DATA_PATH))
     labels = [x["label"] for x in data]
 
-    # 80% train, 20% temp
     train_data, temp_data = train_test_split(
         data,
         test_size=0.2,
@@ -49,7 +50,6 @@ def main():
 
     temp_labels = [x["label"] for x in temp_data]
 
-    # ülejäänud 20% -> pooleks = 10% val, 10% test
     val_data, test_data = train_test_split(
         temp_data,
         test_size=0.5,

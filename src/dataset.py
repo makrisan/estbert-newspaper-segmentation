@@ -56,6 +56,18 @@ def load_jsonl(path):
     return data
 
 
+def build_triplet_model_input(prev_text, curr_text, next_text, sep_token="[SEP]"):
+    """
+    Ühtne koht triplet-inputi loomiseks.
+    Sama funktsiooni saab kasutada nii treeningus kui inference'is,
+    et formaat ei läheks lahku.
+    """
+    prev_text = prev_text or ""
+    curr_text = curr_text or ""
+    next_text = next_text or ""
+
+    return f"{prev_text} {sep_token} {curr_text} {sep_token} {next_text}"
+
 class NewsDataset(Dataset):
     def __init__(self, data, tokenizer, max_length=MAX_LENGTH):
         self.data = data
@@ -71,15 +83,12 @@ class NewsDataset(Dataset):
 
         # Triplet-formaat: eelmine, praegune, järgmine
         if all(k in item for k in ["prev", "curr", "next"]):
-            prev_text = item["prev"] or ""
-            curr_text = item["curr"] or ""
-            next_text = item["next"] or ""
-
-            model_input = (
-                f"{prev_text} {self.sep_token} {curr_text} {self.sep_token} {next_text}"
+            model_input = build_triplet_model_input(
+                item["prev"],
+                item["curr"],
+                item["next"],
+                sep_token=self.sep_token
             )
-
-        # Vana ühe tekstiväljaga formaat
         else:
             model_input = item.get("text", "")
 
@@ -96,7 +105,6 @@ class NewsDataset(Dataset):
             "attention_mask": encoding["attention_mask"].squeeze(0),
             "labels": torch.tensor(item["label"], dtype=torch.long)
         }
-
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader

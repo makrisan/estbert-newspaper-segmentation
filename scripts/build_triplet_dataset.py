@@ -1,12 +1,14 @@
 import json
-import os
+from pathlib import Path
 
-INPUT_PATH = "../data/sample/sample_dataset.jsonl"
-OUTPUT_PATH = "../data/sample/triplet_dataset.jsonl"
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+INPUT_PATH = BASE_DIR / "data" / "sample" / "sample_dataset.jsonl"
+OUTPUT_PATH = BASE_DIR / "data" / "sample" / "triplet_dataset.jsonl"
 
 
 def load_jsonl(path):
-    if not os.path.exists(path):
+    if not path.exists():
         raise FileNotFoundError(f"Faili ei leitud: {path}")
 
     data = []
@@ -35,8 +37,6 @@ def main():
         curr_text = item["text"]
         next_text = data[i + 1]["text"] if i < len(data) - 1 else ""
 
-        # label = 1 ainult siis, kui artikli piir on päriselt prev ja curr vahel
-        # faili esimese rea puhul prev puudub, seega paneme 0
         label = item["label"]
         if i == 0:
             label = 0
