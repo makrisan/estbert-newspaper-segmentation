@@ -4,7 +4,9 @@
 # TEST_RATIO = 0.1 → lõplik hindamine
 
 import json
+
 from sklearn.model_selection import train_test_split
+
 from src.dataset import load_jsonl
 
 DATA_PATH = "../data/sample/triplet_dataset.jsonl"
@@ -22,7 +24,14 @@ def save_jsonl(data, path):
 def label_stats(dataset, name):
     ones = sum(1 for x in dataset if x["label"] == 1)
     zeros = sum(1 for x in dataset if x["label"] == 0)
-    print(f"{name} → kokku: {len(dataset)}, label 1: {ones}, label 0: {zeros}")
+    total = len(dataset)
+
+    print(f"{name} -> kokku: {total}")
+    print(f"label 0: {zeros} ({zeros / total:.2%})")
+    print(f"label 1: {ones} ({ones / total:.2%})")
+
+    if ones > 0:
+        print(f"0:1 suhe = {zeros / ones:.2f}:1")
 
 
 def main():
