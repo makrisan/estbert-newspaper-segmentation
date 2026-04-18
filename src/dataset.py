@@ -3,8 +3,10 @@
 
 import json
 import os
+
 import torch
 from torch.utils.data import Dataset
+
 from src.preprocess import clean_text
 
 MAX_LENGTH = 512
@@ -39,14 +41,16 @@ def load_jsonl(path):
             if "text" in item:
                 item["text"] = clean_text(item["text"])
 
-            # uus triplet formaat
+            # Triplet-formaat
             elif all(k in item for k in ["prev", "curr", "next"]):
                 item["prev"] = clean_text(item["prev"])
                 item["curr"] = clean_text(item["curr"])
                 item["next"] = clean_text(item["next"])
 
             else:
-                raise ValueError(f"Kirjel puudub kas 'text' või triplet väljad: {item}")
+                raise ValueError(
+                    f"Kirjel puudub kas 'text' või triplet-väljad: {item}"
+                )
 
             data.append(item)
 
@@ -54,10 +58,11 @@ def load_jsonl(path):
 
 
 class NewsDataset(Dataset):
-    def __init__(self, data, tokenizer, max_length=128):
+    def __init__(self, data, tokenizer, max_length=MAX_LENGTH):
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.sep_token = tokenizer.sep_token if tokenizer.sep_token else "[SEP]"
 
     def __len__(self):
         return len(self.data)
@@ -65,13 +70,19 @@ class NewsDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        # kui vana formaat
-        if "text" in item:
-            model_input = item["text"]
+        # Triplet-formaat: eelmine, praegune, järgmine
+        if all(k in item for k in ["prev", "curr", "next"]):
+            prev_text = item["prev"] or ""
+            curr_text = item["curr"] or ""
+            next_text = item["next"] or ""
 
-        # kui triplet formaat
+            model_input = (
+                f"{prev_text} {self.sep_token} {curr_text} {self.sep_token} {next_text}"
+            )
+
+        # Vana ühe tekstiväljaga formaat
         else:
-            model_input = f"{item['prev']} [SEP] {item['curr']} [SEP] {item['next']}"
+            model_input = item.get("text", "")
 
         encoding = self.tokenizer(
             model_input,
@@ -89,8 +100,8 @@ class NewsDataset(Dataset):
 
 
 if __name__ == "__main__":
-    from src.model_setup import load_model
     from torch.utils.data import DataLoader
+    from src.model_setup import load_model
 
     data = load_jsonl("data/sample/triplet_dataset.jsonl")
     tokenizer, _ = load_model()
