@@ -10,6 +10,9 @@ from src.preprocess import clean_text
 # EstBERT maksimaalne sisendpikkus on 512 tokenit.
 MAX_LENGTH = 512
 
+def build_triplet_input(prev_text: str, curr_text: str, next_text: str, sep_token: str) -> str:
+    return f"{prev_text or ''} {sep_token} {curr_text or ''} {sep_token} {next_text or ''}"
+
 
 def load_jsonl(path):
     if not os.path.exists(path):
@@ -75,8 +78,12 @@ class NewsDataset(Dataset):
             curr_text = item["curr"] or ""
             next_text = item["next"] or ""
 
-            model_input = (
-                f"{prev_text} {self.sep_token} {curr_text} {self.sep_token} {next_text}"
+            # Enam ei ole käsitsi vaid otse
+            model_input = build_triplet_input(
+                prev_text,
+                curr_text,
+                next_text,
+                self.sep_token
             )
 
         # Vana ühe tekstiväljaga formaat

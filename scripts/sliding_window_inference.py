@@ -4,10 +4,11 @@ import json
 import torch
 
 from src.model_setup import load_model
+from src.dataset import build_triplet_input
 
 INPUT_PATH = "../data/raw/estdagbladet_20110316_lk.txt"
 OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_predicted.txt"
-MODEL_PATH = "../models/model.pt"
+MODEL_PATH = "../models/final_model"
 
 MAX_LENGTH = 512
 
@@ -81,12 +82,12 @@ def split_into_sentences(paragraphs: list[str]) -> list[str]:
     return sentences
 
 
-def build_model_input(prev_text: str, curr_text: str, next_text: str) -> str:
+def build_model_input(prev_text: str, curr_text: str, next_text: str, tokenizer) -> str:
     """
-    AJUTINE lahendus kuni Dataset klass / triplet tokenizer saab lõplikult valmis.
-    Hiljem saad selle asendada päris prev-curr-next tokeniseerimisega.
+    Nüüd kasutab inference sama loogikat nagu dataset.
     """
-    return f"{prev_text} [SEP] {curr_text} [SEP] {next_text}"
+    sep_token = tokenizer.sep_token if tokenizer.sep_token else "[SEP]"
+    return build_triplet_input(prev_text, curr_text, next_text, sep_token)
 
 
 def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[dict]:
@@ -103,7 +104,7 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
         if i == 0:
             pred_label = 0
         else:
-            model_input = build_model_input(prev_text, curr, next_text)
+            model_input = build_model_input(prev_text, curr, next_text, tokenizer)
 
             encoding = tokenizer(
                 model_input,
@@ -187,9 +188,7 @@ def main():
     print("Kokku lauseid pärast eeltöötlust:", len(all_sentences))
 
     print("2. Laen mudeli")
-    tokenizer, model = load_model()
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
-
+    tokenizer, model = load_model(MODEL_PATH)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
