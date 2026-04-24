@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 # --- PATHID ---
 TEST_PATH = "../data/sample/test.jsonl"
-MODEL_PATH = "../models/model.pt"
+MODEL_PATH = "../models/final_model"
 
 # --- HYPERPARAMETERS ---
 # Mitu näidel mudel korraga läbi töötleb
@@ -23,10 +23,9 @@ def main():
     print("Test size:", len(test_data))
 
     # lae tokenizer ja mudel
-    tokenizer, model = load_model()
+    tokenizer, model = load_model(MODEL_PATH)
 
-    # lae treenitud kaalud
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
+    # lae treenitud mudel
     print("2. Treenitud mudel laetud")
 
     # loo dataset ja dataloader
