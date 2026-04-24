@@ -8,6 +8,7 @@ from src.dataset import build_triplet_input
 
 INPUT_PATH = "../data/raw/estdagbladet_20110316_lk.txt"
 OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_predicted.txt"
+DEBUG_OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_debug.txt"
 MODEL_PATH = "../models/final_model"
 
 MAX_LENGTH = 512
@@ -103,6 +104,7 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
 
         if i == 0:
             pred_label = 0
+            boundary_prob = 0.0
         else:
             model_input = build_model_input(prev_text, curr, next_text, tokenizer)
 
@@ -123,16 +125,43 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
                     attention_mask=attention_mask
                 )
 
-            pred_label = torch.argmax(outputs.logits, dim=1).item()
+            probabilities = torch.softmax(outputs.logits, dim=1)
+            boundary_prob = probabilities[0][1].item()
+            pred_label = torch.argmax(probabilities, dim=1).item()
 
         results.append({
             "prev": prev_text,
             "curr": curr,
             "next": next_text,
-            "pred_label": pred_label
+            "pred_label": pred_label,
+            "boundary_prob": boundary_prob
         })
 
     return results
+
+
+def write_debug_output(results: list[dict], output_path: str):
+    """
+    Kirjutab debug-väljundi faili.
+    Näitab iga ennustuse puhul prev/curr/next konteksti ja boundary tõenäosust.
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        for i, item in enumerate(results):
+            f.write("=" * 80 + "\n")
+            f.write(f"Index: {i}\n")
+            f.write(f"Pred label: {item['pred_label']}\n")
+            f.write(f"Boundary probability: {item['boundary_prob']:.4f}\n\n")
+
+            f.write("PREV:\n")
+            f.write(item["prev"] + "\n\n")
+
+            f.write("CURR:\n")
+            f.write(item["curr"] + "\n\n")
+
+            f.write("NEXT:\n")
+            f.write(item["next"] + "\n\n")
 
 
 def write_tagged_output(results: list[dict], output_path: str):
@@ -197,13 +226,27 @@ def main():
     results = predict_boundaries(all_sentences, tokenizer, model, device)
 
     total_boundaries = sum(x["pred_label"] for x in results)
+    boundary_candidates = [x for x in results if x["pred_label"] == 1]
+
     print("Leitud piire:", total_boundaries)
+
+    if boundary_candidates:
+        print("\nEnnustatud boundary kohad:")
+        for item in boundary_candidates:
+            print("-" * 80)
+            print(f"Boundary probability: {item['boundary_prob']:.4f}")
+            print(f"PREV: {item['prev'][:200]}")
+            print(f"CURR: {item['curr'][:200]}")
+    else:
+        print("Mudel ei ennustanud ühtegi boundary't.")
 
     print("4. Salvestan väljundi")
     write_tagged_output(results, OUTPUT_PATH)
+    write_debug_output(results, DEBUG_OUTPUT_PATH)
 
     print("Valmis.")
     print("Väljundfail:", OUTPUT_PATH)
+    print("Debug fail:", DEBUG_OUTPUT_PATH)
 
 
 if __name__ == "__main__":
