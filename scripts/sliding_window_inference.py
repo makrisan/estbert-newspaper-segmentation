@@ -87,14 +87,22 @@ def protect_sentence_split_cases(text: str) -> str:
     Kaitseb OCR-tekstis kohti, mille pealt ei tohiks lauset poolitada.
     Näiteks kuupäevad nagu "16. märts" ja lühendid nagu "Nr. 11".
     """
+    # kaitse kuupäevad ka juhul kui on reavahetus või käänded (nt novembril, jaanuaris)
     for month in MONTH_NAMES:
         text = re.sub(
-            rf"(\d{{1,2}})\.\s+({month})",
+            rf"(\d{{1,2}})\.\s*\n?\s*({month}\w*)",
             rf"\1<DOT> \2",
             text,
             flags=re.IGNORECASE
         )
-
+    # kaitse aastad nagu "2011. aastal" jne
+    text = re.sub(
+        r"(\d{4})\.\s*\n?\s*(aastal|aasta|a)",
+        r"\1<DOT> \2",
+        text,
+        flags=re.IGNORECASE
+    )
+    # lühendid
     for abbreviation in ABBREVIATIONS:
         protected = abbreviation.replace(".", "<DOT>")
         text = text.replace(abbreviation, protected)
