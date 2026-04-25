@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import torch
 
 from src.model_setup import load_model
@@ -12,6 +11,15 @@ DEBUG_OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_debug.txt"
 MODEL_PATH = "../models/final_model"
 
 MAX_LENGTH = 512
+
+MONTH_NAMES = [
+    "jaanuar", "veebruar", "märts", "aprill", "mai", "juuni",
+    "juuli", "august", "september", "oktoober", "november", "detsember"
+]
+
+ABBREVIATIONS = [
+    "Nr.", "nr.", "lk.", "a.", "st.", "nt.", "jm.", "jne.", "Dr.", "Prof."
+]
 
 
 def extract_p_tags(html_text: str) -> list[str]:
@@ -45,20 +53,68 @@ def is_layout_noise(text: str) -> bool:
     Väga lihtne heuristika, et eemaldada ilmselge layout-müra.
     Ära tee seda liiga agressiivseks.
     """
+    # üldisemad noise patternid
     noise_patterns = [
-        r"^EESTI PÄEVALEHT$",
-        r"^ESTNISKA DAGBLADET$",
-        r"^Kolmapäev, \d{1,2}\. märts \d{4}$",
+        # üksikud tähed / leheküljenumbrid
+        r"^[A-ZÕÄÖÜŠŽ]$",
         r"^\d+$",
+
+        # kuupäevaread eri nädalapäevade ja kuudega
+        r"^[A-ZÕÄÖÜŠŽa-zõäöüšž]+, \d{1,2}\. [a-zõäöüšž]+ \d{4}( Nr\. \d+ \(\d+\))?$",
+
+        # lehekülje viited
         r"^Sidan \d+$",
-        r"^Estniska Dagbladet idag$",
+        r"^Lk\.? \d+$",
+        r"^Lehekülg \d+$",
+
+        # väga lühikesed ajalehe päise tüüpi read
+        r"^\|?\s*[A-ZÕÄÖÜŠŽ ]{5,}\s*\|?$",
     ]
 
     for pattern in noise_patterns:
         if re.match(pattern, text, flags=re.IGNORECASE):
             return True
 
+    # Väga lühikesed ainult suurtähtedest koosnevad päiseread
+    if len(text) <= 30 and text.isupper():
+        return True
+
     return False
+
+
+def protect_sentence_split_cases(text: str) -> str:
+    """
+    Kaitseb OCR-tekstis kohti, mille pealt ei tohiks lauset poolitada.
+    Näiteks kuupäevad nagu "16. märts" ja lühendid nagu "Nr. 11".
+    """
+    # kaitse kuupäevad ka juhul kui on reavahetus või käänded (nt novembril, jaanuaris)
+    for month in MONTH_NAMES:
+        text = re.sub(
+            rf"(\d{{1,2}})\.\s*\n?\s*({month}\w*)",
+            rf"\1<DOT> \2",
+            text,
+            flags=re.IGNORECASE
+        )
+    # kaitse aastad nagu "2011. aastal" jne
+    text = re.sub(
+        r"(\d{4})\.\s*\n?\s*(aastal|aasta|a)",
+        r"\1<DOT> \2",
+        text,
+        flags=re.IGNORECASE
+    )
+    # lühendid
+    for abbreviation in ABBREVIATIONS:
+        protected = abbreviation.replace(".", "<DOT>")
+        text = text.replace(abbreviation, protected)
+
+    return text
+
+
+def restore_sentence_split_cases(text: str) -> str:
+    """
+    Taastab ajutiselt kaitstud punktid tagasi tavalisteks punktideks.
+    """
+    return text.replace("<DOT>", ".")
 
 
 def split_into_sentences(paragraphs: list[str]) -> list[str]:
@@ -72,12 +128,16 @@ def split_into_sentences(paragraphs: list[str]) -> list[str]:
         if is_layout_noise(paragraph):
             continue
 
+        protected_paragraph = protect_sentence_split_cases(paragraph)
+
         # jaga lausete lõppude pealt
-        parts = re.split(r"(?<=[.!?])\s+", paragraph)
+        parts = re.split(r"(?<=[.!?])\s+", protected_paragraph)
 
         for part in parts:
+            part = restore_sentence_split_cases(part)
             part = part.strip()
-            if part:
+
+            if part and not is_layout_noise(part):
                 sentences.append(part)
 
     return sentences
