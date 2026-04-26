@@ -1,9 +1,26 @@
 import json
 import os
+from pathlib import Path
 
-INPUT_PATH = "../data/sample/sample_dataset.jsonl"
-OUTPUT_PATH = "../data/sample/triplet_dataset.jsonl"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data" / "sample"
+LEGACY_DATA_DIR = PROJECT_ROOT / "scripts" / "data" / "sample"
+INPUT_PATH = DATA_DIR / "sample_dataset.jsonl"
+LEGACY_INPUT_PATH = LEGACY_DATA_DIR / "sample_dataset.jsonl"
+OUTPUT_PATH = DATA_DIR / "triplet_dataset.jsonl"
 
+## võib seda hoida siin igaks juhuks, kui kasutame mingit vana faili
+def resolve_input_path() -> Path:
+    if INPUT_PATH.exists():
+        return INPUT_PATH
+
+    if LEGACY_INPUT_PATH.exists():
+        print(f"Hoiatus: kasutan legacy sisendfaili: {LEGACY_INPUT_PATH}")
+        return LEGACY_INPUT_PATH
+
+    raise FileNotFoundError(
+        f"Faili ei leitud: {INPUT_PATH} (ega legacy asukohast {LEGACY_INPUT_PATH})"
+    )
 
 def load_jsonl(path):
     if not os.path.exists(path):
@@ -20,13 +37,15 @@ def load_jsonl(path):
 
 
 def save_jsonl(data, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for item in data:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
 def main():
-    data = load_jsonl(INPUT_PATH)
+    input_path = resolve_input_path()
+    data = load_jsonl(input_path)
 
     triplets = []
 
@@ -54,6 +73,7 @@ def main():
     save_jsonl(triplets, OUTPUT_PATH)
 
     print("Triplet-dataset loodud.")
+    print("Sisendfail:", input_path)
     print("Sisendkirjeid:", len(data))
     print("Väljundkirjeid:", len(triplets))
     print("Salvestatud faili:", OUTPUT_PATH)

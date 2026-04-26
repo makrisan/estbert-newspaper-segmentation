@@ -4,18 +4,26 @@
 # TEST_RATIO = 0.1 → lõplik hindamine
 
 import json
+from pathlib import Path
+import sys
 
 from sklearn.model_selection import train_test_split
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.dataset import load_jsonl
 
-DATA_PATH = "../data/sample/triplet_dataset.jsonl"
-TRAIN_PATH = "../data/sample/train.jsonl"
-VAL_PATH = "../data/sample/val.jsonl"
-TEST_PATH = "../data/sample/test.jsonl"
+DATA_DIR = PROJECT_ROOT / "data" / "sample"
+DATA_PATH = DATA_DIR / "triplet_dataset.jsonl"
+TRAIN_PATH = DATA_DIR / "train.jsonl"
+VAL_PATH = DATA_DIR / "val.jsonl"
+TEST_PATH = DATA_DIR / "test.jsonl"
 
 
 def save_jsonl(data, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for item in data:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
