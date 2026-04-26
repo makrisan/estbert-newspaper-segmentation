@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,12 +12,22 @@ from sklearn.metrics import (
 )
 from transformers import Trainer, TrainingArguments
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.dataset import load_jsonl, NewsDataset
 from src.model_setup import load_model
 
+
 # --- PATHS ---
-TRAIN_PATH = "data/sample/train.jsonl"
-VAL_PATH = "data/sample/val.jsonl"
+TRAIN_PATH = PROJECT_ROOT / "data" / "sample" / "train.jsonl"
+VAL_PATH = PROJECT_ROOT / "data" / "sample" / "val.jsonl"
+CLASS_DISTRIBUTION_PATH = PROJECT_ROOT / "class_distribution.png"
+CONFUSION_MATRIX_PATH = PROJECT_ROOT / "confusion_matrix.png"
+CHECKPOINT_DIR = PROJECT_ROOT / "models" / "checkpoints"
+LOG_DIR = PROJECT_ROOT / "logs"
+FINAL_MODEL_DIR = PROJECT_ROOT / "models" / "final_model"
 
 # --- HYPERPARAMETERS ---
 BATCH_SIZE = 4
@@ -35,7 +47,7 @@ def calculate_class_stats(data):
     return num_zeros, num_ones, ratio, class_1_weight
 
 
-def visualize_class_distribution(num_zeros, num_ones):
+def visualize_class_distribution(num_zeros, num_ones, save_path=CLASS_DISTRIBUTION_PATH):
     """Salvestab klasside jaotuse tulpdiagrammina."""
     plt.figure(figsize=(8, 5))
     plt.bar(
@@ -45,10 +57,10 @@ def visualize_class_distribution(num_zeros, num_ones):
     plt.ylabel("Count")
     plt.title("Class Distribution in Training Data")
     plt.tight_layout()
-    plt.savefig("class_distribution.png")
+    plt.savefig(save_path)
     plt.close()
 
-    print("Class distribution chart saved to class_distribution.png")
+    print(f"Class distribution chart saved to {save_path}")
 
 
 def compute_metrics(eval_pred):
@@ -72,7 +84,7 @@ def compute_metrics(eval_pred):
     }
 
 
-def plot_confusion_matrix(cm, save_path="confusion_matrix.png"):
+def plot_confusion_matrix(cm, save_path=CONFUSION_MATRIX_PATH):
     """Salvestab confusion matrixi pildina."""
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -158,13 +170,13 @@ def main():
 
     # --- TRAINING ARGUMENTS ---
     training_args = TrainingArguments(
-        output_dir="./models/checkpoints",
+        output_dir=str(CHECKPOINT_DIR),
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         per_device_eval_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
         weight_decay=0.01,
-        logging_dir="./logs",
+        logging_dir=str(LOG_DIR),
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
@@ -214,11 +226,11 @@ def main():
     print(f"True Article Start:  {cm[1][0]:3d}   |   {cm[1][1]:3d}")
 
     # --- SAVE FINAL MODEL ---
-    os.makedirs("models", exist_ok=True)
-    model.save_pretrained("models/final_model")
-    tokenizer.save_pretrained("models/final_model")
+    FINAL_MODEL_DIR.parent.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(FINAL_MODEL_DIR)
+    tokenizer.save_pretrained(FINAL_MODEL_DIR)
 
-    print("\n✓ Final model saved to models/final_model/")
+    print(f"\n✓ Final model saved to {FINAL_MODEL_DIR}")
 
 
 if __name__ == "__main__":
