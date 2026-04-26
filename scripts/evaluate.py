@@ -1,13 +1,21 @@
 # pip install scikit-learn
-from src.dataset import load_jsonl, NewsDataset
-from src.model_setup import load_model
+from pathlib import Path
+import sys
+
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 # --- PATHID ---
-TEST_PATH = "../data/sample/test.jsonl"
-MODEL_PATH = "../models/final_model"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.dataset import load_jsonl, NewsDataset
+from src.model_setup import load_model
+
+TEST_PATH = PROJECT_ROOT / "data" / "sample" / "test.jsonl"
+MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
 
 # --- HYPERPARAMETERS ---
 # Mitu näidel mudel korraga läbi töötleb
