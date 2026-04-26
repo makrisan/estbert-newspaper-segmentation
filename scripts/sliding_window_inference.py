@@ -1,14 +1,22 @@
 import os
 import re
+from pathlib import Path
+import sys
+
 import torch
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.model_setup import load_model
 from src.dataset import build_triplet_input
 
-INPUT_PATH = "../data/raw/estdagbladet_20110316_lk.txt"
-OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_predicted.txt"
-DEBUG_OUTPUT_PATH = "../data/output/estdagbladet_20110316_lk_debug.txt"
-MODEL_PATH = "../models/final_model"
+INPUT_PATH = PROJECT_ROOT / "data" / "raw" / "estdagbladet_20110316_lk.txt"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
+OUTPUT_PATH = OUTPUT_DIR / "estdagbladet_20110316_lk_predicted.txt"
+DEBUG_OUTPUT_PATH = OUTPUT_DIR / "estdagbladet_20110316_lk_debug.txt"
+MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
 
 MAX_LENGTH = 512
 
@@ -200,12 +208,12 @@ def predict_boundaries(sentences: list[str], tokenizer, model, device) -> list[d
     return results
 
 
-def write_debug_output(results: list[dict], output_path: str):
+def write_debug_output(results: list[dict], output_path: str | Path):
     """
     Kirjutab debug-väljundi faili.
     Näitab iga ennustuse puhul prev/curr/next konteksti ja boundary tõenäosust.
     """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
         for i, item in enumerate(results):
@@ -224,12 +232,12 @@ def write_debug_output(results: list[dict], output_path: str):
             f.write(item["next"] + "\n\n")
 
 
-def write_tagged_output(results: list[dict], output_path: str):
+def write_tagged_output(results: list[dict], output_path: str | Path):
     """
     Kirjutab väljundi faili.
     Kui pred_label == 1, alustame uut <p> plokki.
     """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
         article_started = False
@@ -301,8 +309,8 @@ def main():
         print("Mudel ei ennustanud ühtegi boundary't.")
 
     print("4. Salvestan väljundi")
-    write_tagged_output(results, OUTPUT_PATH)
-    write_debug_output(results, DEBUG_OUTPUT_PATH)
+    write_tagged_output(results, str(OUTPUT_PATH))
+    write_debug_output(results, str(DEBUG_OUTPUT_PATH))
 
     print("Valmis.")
     print("Väljundfail:", OUTPUT_PATH)
