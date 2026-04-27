@@ -1,8 +1,11 @@
 # pip install scikit-learn
 from pathlib import Path
 import sys
+import argparse
+import json
 
 import torch
+from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
@@ -14,8 +17,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.dataset import load_jsonl, NewsDataset
 from src.model_setup import load_model
 
-TEST_PATH = PROJECT_ROOT / "data" / "sample" / "test.jsonl"
+VAL_PATH = PROJECT_ROOT / "data" / "large" / "val.jsonl"
+TEST_PATH = PROJECT_ROOT / "data" / "large" / "test.jsonl"
 MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
+REPORT_PATH = PROJECT_ROOT / "data" / "output" / "evaluation_report.json"
 
 # --- HYPERPARAMETERS ---
 # Mitu näidel mudel korraga läbi töötleb
@@ -23,69 +28,136 @@ MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
 BATCH_SIZE = 4
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate model with threshold tuning")
+    parser.add_argument("--val-path", type=Path, default=VAL_PATH)
+    parser.add_argument("--test-path", type=Path, default=TEST_PATH)
+    parser.add_argument("--model-path", type=Path, default=MODEL_PATH)
+    parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
+    parser.add_argument("--report-path", type=Path, default=REPORT_PATH)
+    return parser.parse_args()
+
+
+def resolve_path(path: Path) -> Path:
+    return path if path.is_absolute() else PROJECT_ROOT / path
+
+
+def predict_probs(data, tokenizer, model, device, batch_size):
+    dataset = NewsDataset(data, tokenizer)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+
+    all_labels = []
+    all_probs = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            probs = softmax(outputs.logits, dim=1)[:, 1]
+
+            all_probs.extend(probs.cpu().tolist())
+            all_labels.extend(labels.cpu().tolist())
+
+    return all_labels, all_probs
+
+
+def compute_metrics_for_threshold(labels, probs, threshold):
+    preds = [1 if p >= threshold else 0 for p in probs]
+    cm = confusion_matrix(labels, preds, labels=[0, 1])
+
+    return {
+        "threshold": threshold,
+        "accuracy": accuracy_score(labels, preds),
+        "precision": precision_score(labels, preds, zero_division=0),
+        "recall": recall_score(labels, preds, zero_division=0),
+        "f1": f1_score(labels, preds, zero_division=0),
+        "confusion_matrix": cm.tolist(),
+    }
+
+
+def find_best_threshold(labels, probs):
+    best = None
+    for i in range(5, 96):
+        threshold = i / 100
+        metrics = compute_metrics_for_threshold(labels, probs, threshold)
+        if best is None or metrics["f1"] > best["f1"]:
+            best = metrics
+    return best
+
+
+def print_metrics(title, metrics):
+    print(f"\n{title}")
+    print(f"Threshold: {metrics['threshold']:.2f}")
+    print(f"Accuracy:  {metrics['accuracy']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall:    {metrics['recall']:.4f}")
+    print(f"F1-score:  {metrics['f1']:.4f}")
+    print("Confusion matrix:")
+    print(metrics["confusion_matrix"])
+
+
 def main():
+    args = parse_args()
+    val_path = resolve_path(args.val_path)
+    test_path = resolve_path(args.test_path)
+    model_path = resolve_path(args.model_path)
+    report_path = resolve_path(args.report_path)
+
     print("1. Alustan evaluation'it")
 
-    # lae testandmed
-    test_data = load_jsonl(TEST_PATH)
+    val_data = load_jsonl(val_path)
+    test_data = load_jsonl(test_path)
+    print("Val size:", len(val_data))
     print("Test size:", len(test_data))
 
     # lae tokenizer ja mudel
-    tokenizer, model = load_model(MODEL_PATH)
+    tokenizer, model = load_model(model_path)
 
     # lae treenitud mudel
     print("2. Treenitud mudel laetud")
-
-    # loo dataset ja dataloader
-    test_dataset = NewsDataset(test_data, tokenizer)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
     # device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
 
-    all_preds = []
-    all_labels = []
+    val_labels, val_probs = predict_probs(val_data, tokenizer, model, device, args.batch_size)
+    test_labels, test_probs = predict_probs(test_data, tokenizer, model, device, args.batch_size)
 
-    # ennustamine
-    with torch.no_grad():
-        for batch in test_loader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].to(device)
+    default_metrics = compute_metrics_for_threshold(test_labels, test_probs, threshold=0.5)
+    best_val = find_best_threshold(val_labels, val_probs)
+    tuned_test_metrics = compute_metrics_for_threshold(
+        test_labels,
+        test_probs,
+        threshold=best_val["threshold"],
+    )
 
-            outputs = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask
-            )
+    print_metrics("TEST METRICS (default threshold=0.50)", default_metrics)
+    print_metrics("VALIDATION BEST THRESHOLD", best_val)
+    print_metrics("TEST METRICS (validation-tuned threshold)", tuned_test_metrics)
 
-            preds = torch.argmax(outputs.logits, dim=1)
+    report = {
+        "val_path": str(val_path),
+        "test_path": str(test_path),
+        "model_path": str(model_path),
+        "default_test": default_metrics,
+        "best_val_threshold": best_val,
+        "tuned_test": tuned_test_metrics,
+    }
 
-            all_preds.extend(preds.cpu().tolist())
-            all_labels.extend(labels.cpu().tolist())
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
 
-    # metrikad
-    accuracy = accuracy_score(all_labels, all_preds)
-    precision = precision_score(all_labels, all_preds, zero_division=0)
-    recall = recall_score(all_labels, all_preds, zero_division=0)
-    f1 = f1_score(all_labels, all_preds, zero_division=0)
-    cm = confusion_matrix(all_labels, all_preds)
-
-    # väljund
-    print("\nEVALUATION TULEMUSED:")
-    print(f"Accuracy:  {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall:    {recall:.4f}")
-    print(f"F1-score:  {f1:.4f}")
-
-    print("\nConfusion matrix:")
-    print(cm)
+    print(f"\nEvaluation report saved to: {report_path}")
 
     # lihtne kommentaar
     print("\nLühike kommentaar:")
     print("Need tulemused näitavad, kui hästi mudel eristab artikli alguseid ja mitte-alguseid.")
-    print("Kuna testandmestik on väga väike, tuleb tulemusi tõlgendada ettevaatlikult.")
+    print("Vali-thresholdi põhjal testitulemusi tasub hinnata koos confusion matrixiga.")
     print("Samas annab see esialgse hinnangu, kas treeningpipeline töötab ja mudel õpib midagi kasulikku.")
 
     # maatriksi lugemine: [[1 2][3 4]] [[TN  FP][FN  TP]]

@@ -1,6 +1,6 @@
-import os
 from pathlib import Path
 import sys
+import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,8 +21,8 @@ from src.model_setup import load_model
 
 
 # --- PATHS ---
-TRAIN_PATH = PROJECT_ROOT / "data" / "sample" / "train.jsonl"
-VAL_PATH = PROJECT_ROOT / "data" / "sample" / "val.jsonl"
+TRAIN_PATH = PROJECT_ROOT / "data" / "large" / "train.jsonl"
+VAL_PATH = PROJECT_ROOT / "data" / "large" / "val.jsonl"
 CLASS_DISTRIBUTION_PATH = PROJECT_ROOT / "class_distribution.png"
 CONFUSION_MATRIX_PATH = PROJECT_ROOT / "confusion_matrix.png"
 CHECKPOINT_DIR = PROJECT_ROOT / "models" / "checkpoints"
@@ -33,6 +33,18 @@ FINAL_MODEL_DIR = PROJECT_ROOT / "models" / "final_model"
 BATCH_SIZE = 4
 EPOCHS = 2
 LEARNING_RATE = 2e-5
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train article-boundary classifier")
+    parser.add_argument("--train-path", type=Path, default=TRAIN_PATH)
+    parser.add_argument("--val-path", type=Path, default=VAL_PATH)
+    parser.add_argument("--final-model-dir", type=Path, default=FINAL_MODEL_DIR)
+    parser.add_argument("--checkpoint-dir", type=Path, default=CHECKPOINT_DIR)
+    parser.add_argument("--log-dir", type=Path, default=LOG_DIR)
+    parser.add_argument("--class-plot-path", type=Path, default=CLASS_DISTRIBUTION_PATH)
+    parser.add_argument("--cm-plot-path", type=Path, default=CONFUSION_MATRIX_PATH)
+    return parser.parse_args()
 
 
 def calculate_class_stats(data):
@@ -133,10 +145,20 @@ class WeightedTrainer(Trainer):
 
 def main():
     print("1. Alustan treeningut")
+    args = parse_args()
+
+    train_path = args.train_path if args.train_path.is_absolute() else PROJECT_ROOT / args.train_path
+    val_path = args.val_path if args.val_path.is_absolute() else PROJECT_ROOT / args.val_path
+
+    final_model_dir = args.final_model_dir if args.final_model_dir.is_absolute() else PROJECT_ROOT / args.final_model_dir
+    checkpoint_dir = args.checkpoint_dir if args.checkpoint_dir.is_absolute() else PROJECT_ROOT / args.checkpoint_dir
+    log_dir = args.log_dir if args.log_dir.is_absolute() else PROJECT_ROOT / args.log_dir
+    class_plot_path = args.class_plot_path if args.class_plot_path.is_absolute() else PROJECT_ROOT / args.class_plot_path
+    cm_plot_path = args.cm_plot_path if args.cm_plot_path.is_absolute() else PROJECT_ROOT / args.cm_plot_path
 
     # --- LOAD DATA ---
-    train_data = load_jsonl(TRAIN_PATH)
-    val_data = load_jsonl(VAL_PATH)
+    train_data = load_jsonl(train_path)
+    val_data = load_jsonl(val_path)
 
     print("Train size:", len(train_data))
     print("Val size:", len(val_data))
@@ -156,7 +178,7 @@ def main():
     print(f"  Class 1 weight for loss: {class_1_weight:.2f}\n")
 
     # --- VISUALIZE CLASS DISTRIBUTION ---
-    visualize_class_distribution(num_zeros, num_ones)
+    visualize_class_distribution(num_zeros, num_ones, save_path=class_plot_path)
 
     # --- LOAD MODEL ---
     tokenizer, model = load_model()
@@ -170,13 +192,13 @@ def main():
 
     # --- TRAINING ARGUMENTS ---
     training_args = TrainingArguments(
-        output_dir=str(CHECKPOINT_DIR),
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         per_device_eval_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
         weight_decay=0.01,
-        logging_dir=str(LOG_DIR),
+        output_dir=str(checkpoint_dir),
+        logging_dir=str(log_dir),
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
@@ -217,7 +239,7 @@ def main():
     y_true = predictions.label_ids
 
     cm = confusion_matrix(y_true, y_pred)
-    plot_confusion_matrix(cm)
+    plot_confusion_matrix(cm, save_path=cm_plot_path)
 
     print("\nConfusion Matrix:")
     print("                    Predicted")
@@ -226,11 +248,11 @@ def main():
     print(f"True Article Start:  {cm[1][0]:3d}   |   {cm[1][1]:3d}")
 
     # --- SAVE FINAL MODEL ---
-    FINAL_MODEL_DIR.parent.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(FINAL_MODEL_DIR)
-    tokenizer.save_pretrained(FINAL_MODEL_DIR)
+    final_model_dir.parent.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(final_model_dir)
+    tokenizer.save_pretrained(final_model_dir)
 
-    print(f"\n✓ Final model saved to {FINAL_MODEL_DIR}")
+    print(f"\n✓ Final model saved to {final_model_dir}")
 
 
 if __name__ == "__main__":
