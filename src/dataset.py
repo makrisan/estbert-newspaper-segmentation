@@ -4,17 +4,22 @@ import os
 import torch
 from torch.utils.data import Dataset
 
-from src.preprocess import clean_text
+from text_cleaner import clean_text
 
 # MAX_LENGTH määrab, kui pikad tekstid tokenizer mudelile annab.
 # EstBERT maksimaalne sisendpikkus on 512 tokenit.
 MAX_LENGTH = 512
 
+
 def build_triplet_input(prev_text: str, curr_text: str, next_text: str, sep_token: str) -> str:
+    """
+    Ehitab BERT sisendi formaadis: prev [SEP] curr [SEP] next.
+    Kui prev on tühi (artikli algus), on see BERT-ile oluline signaal label=1 jaoks.
+    """
     return f"{prev_text or ''} {sep_token} {curr_text or ''} {sep_token} {next_text or ''}"
 
 
-def load_jsonl(path):
+def load_jsonl(path) -> list[dict]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"Faili ei leitud: {path}")
 
@@ -39,20 +44,12 @@ def load_jsonl(path):
             if item["label"] not in [0, 1]:
                 raise ValueError(f"Vale label väärtus: {item['label']}")
 
-            # Vana formaat
-            if "text" in item:
-                item["text"] = clean_text(item["text"])
+            if not all(k in item for k in ["prev", "curr", "next"]):
+                raise ValueError(f"Kirjel puuduvad triplet-väljad: {item}")
 
-            # Triplet-formaat
-            elif all(k in item for k in ["prev", "curr", "next"]):
-                item["prev"] = clean_text(item["prev"])
-                item["curr"] = clean_text(item["curr"])
-                item["next"] = clean_text(item["next"])
-
-            else:
-                raise ValueError(
-                    f"Kirjel puudub kas 'text' või triplet-väljad: {item}"
-                )
+            item["prev"] = clean_text(item["prev"])
+            item["curr"] = clean_text(item["curr"])
+            item["next"] = clean_text(item["next"])
 
             data.append(item)
 
@@ -72,23 +69,12 @@ class NewsDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        # Triplet-formaat: eelmine, praegune, järgmine
-        if all(k in item for k in ["prev", "curr", "next"]):
-            prev_text = item["prev"] or ""
-            curr_text = item["curr"] or ""
-            next_text = item["next"] or ""
-
-            # Enam ei ole käsitsi vaid otse
-            model_input = build_triplet_input(
-                prev_text,
-                curr_text,
-                next_text,
-                self.sep_token
-            )
-
-        # Vana ühe tekstiväljaga formaat
-        else:
-            model_input = item.get("text", "")
+        model_input = build_triplet_input(
+            item["prev"],
+            item["curr"],
+            item["next"],
+            self.sep_token
+        )
 
         encoding = self.tokenizer(
             model_input,
@@ -103,23 +89,3 @@ class NewsDataset(Dataset):
             "attention_mask": encoding["attention_mask"].squeeze(0),
             "labels": torch.tensor(item["label"], dtype=torch.long)
         }
-
-
-if __name__ == "__main__":
-    from torch.utils.data import DataLoader
-    from src.model_setup import load_model
-
-    data = load_jsonl("data/sample/triplet_dataset.jsonl")
-    tokenizer, _ = load_model()
-
-    dataset = NewsDataset(data, tokenizer)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-
-    batch = next(iter(dataloader))
-
-    print(f"Dataset suurus: {len(dataset)} kirjet")
-    print(f"Batch suurus:   {batch['input_ids'].shape[0]}\n")
-    print(f"input_ids kuju:      {batch['input_ids'].shape}")
-    print(f"attention_mask kuju: {batch['attention_mask'].shape}")
-    print(f"labels kuju:         {batch['labels'].shape}")
-    print(f"labels väärtused:    {batch['labels']}")
