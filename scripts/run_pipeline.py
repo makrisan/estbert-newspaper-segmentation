@@ -9,60 +9,52 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 def run_step(name: str, script_name: str, args: list[str] | None = None):
     print(f"\n==============================")
-    print(f"Running step: {name}")
-    print(f"Script: {script_name}")
+    print(f"Samm: {name}")
     print(f"==============================\n")
 
     script_path = SCRIPTS_DIR / script_name
 
     if not script_path.exists():
-        raise FileNotFoundError(f"Script not found: {script_path}")
-
-    command = [sys.executable, str(script_path)]
-    if args:
-        command.extend(args)
+        raise FileNotFoundError(f"Skripti ei leitud: {script_path}")
 
     result = subprocess.run(
-        command,
+        [sys.executable, str(script_path)] + (args or []),
         cwd=PROJECT_ROOT,
         text=True
     )
 
     if result.returncode != 0:
-        raise RuntimeError(f"Step failed: {name}")
+        raise RuntimeError(f"Samm ebaõnnestus: {name}")
 
-    print(f"\nDone: {name}")
+    print(f"\nValmis: {name}")
 
 
 def main():
-    run_step("Build large triplet dataset", "build_large_dataset.py")
     run_step(
-        "Split large dataset",
+        "Ehita triplet-andmestik",
+        "build_large_dataset.py",
+    )
+    run_step(
+        "Jaga andmestik train/val/test",
         "split_dataset.py",
-        [
-            "--input-path", "data/large_triplet_dataset.jsonl",
-            "--output-dir", "data/large",
-        ]
+        ["--input-path", "data/large_triplet_dataset.jsonl", "--output-dir", "data/large"],
     )
     run_step(
-        "Train model",
+        "Treeni mudel",
         "train.py",
-        [
-            "--train-path", "data/large/train.jsonl",
-            "--val-path", "data/large/val.jsonl",
-        ]
+        ["--train-path", "data/large/train.jsonl", "--val-path", "data/large/val.jsonl"],
     )
     run_step(
-        "Evaluate model",
+        "Hinda mudel",
         "evaluate.py",
-        [
-            "--val-path", "data/large/val.jsonl",
-            "--test-path", "data/large/test.jsonl",
-        ]
+        ["--val-path", "data/large/val.jsonl", "--test-path", "data/large/test.jsonl"],
     )
-    run_step("Run sliding window inference", "sliding_window_inference.py")
+    run_step(
+        "Inference sliding window meetodil",
+        "inference.py",
+    )
 
-    print("\nPipeline finished successfully!")
+    print("\nPipeline lõpetatud!")
 
 
 if __name__ == "__main__":

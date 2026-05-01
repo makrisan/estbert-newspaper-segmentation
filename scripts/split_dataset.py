@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.dataset import load_jsonl
+from dataset import load_jsonl
 
 DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "large_triplet_dataset.jsonl"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "large"
