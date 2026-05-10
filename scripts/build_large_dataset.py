@@ -8,7 +8,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 from src.text_cleaner import extract_p_tags, split_into_sentences
 
 INPUT_DIR = PROJECT_ROOT / "data" / "raw" / "segmented"
-# INPUT_DIR = PROJECT_ROOT / "scripts" / "data" / "segmented" <- Gretul töötas see
 OUTPUT_PATH = PROJECT_ROOT / "data" / "large_triplet_dataset.jsonl"
 SAMPLE_OUTPUT_PATH = PROJECT_ROOT / "data" / "output" / "large_dataset_sample.jsonl"
 MAX_SAMPLE_ROWS = 25
