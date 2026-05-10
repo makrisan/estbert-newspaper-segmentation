@@ -5,9 +5,10 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-from src.text_cleaner import clean_text, is_layout_noise, extract_p_tags
+from src.text_cleaner import extract_p_tags, split_into_sentences
 
 INPUT_DIR = PROJECT_ROOT / "data" / "raw" / "segmented"
+# INPUT_DIR = PROJECT_ROOT / "scripts" / "data" / "segmented" <- Gretul töötas see
 OUTPUT_PATH = PROJECT_ROOT / "data" / "large_triplet_dataset.jsonl"
 SAMPLE_OUTPUT_PATH = PROJECT_ROOT / "data" / "output" / "large_dataset_sample.jsonl"
 MAX_SAMPLE_ROWS = 25
@@ -55,21 +56,17 @@ def collect_input_files(input_path: Path | None = None) -> tuple[list[Path], lis
 def split_into_chunks(html_text: str) -> list[str]:
     """
     Teeb ühe artikli HTML tekstist puhastatud tekstijupid.
-    Artikli piir tuleb ID järgi, mitte <p> tagide järgi.
+    Kasutab split_into_sentences() lausepiiride kaitsmiseks,
+    et vältida vale lõikamist lühendite ja kuupäevade juures.
     """
-    chunks = []
+    paragraphs = extract_p_tags(html_text)
 
-    for paragraph in extract_p_tags(html_text):
-        cleaned = clean_text(paragraph)
-
-        if not cleaned:
-            continue
-        if is_layout_noise(cleaned):
-            continue
-        if len(cleaned) < MIN_CHUNK_LENGTH:
-            continue
-
-        chunks.append(cleaned)
+    # split_into_sentences teeb korraga:
+    # - is_layout_noise() filtri
+    # - lühendite kaitse
+    # - lauseteks jagamise
+    # - minimaalse pikkuse kontrolli (>= 20 tähemärki)
+    chunks = split_into_sentences(paragraphs)
 
     return chunks
 
