@@ -8,9 +8,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from model_setup import load_model
-from dataset import build_triplet_input
-from text_cleaner import extract_p_tags, split_into_sentences
+from src.model_setup import load_model
+from src.dataset import build_triplet_input
+from src.text_cleaner import extract_p_tags, split_into_sentences
 
 INPUT_PATH = PROJECT_ROOT / "data" / "raw" / "estdagbladet_20110316_lk.txt"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"

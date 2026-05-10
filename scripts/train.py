@@ -16,8 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from dataset import load_jsonl, NewsDataset
-from model_setup import load_model
+from src.dataset import load_jsonl, NewsDataset
+from src.model_setup import load_model
 
 # --- PATHS ---
 TRAIN_PATH = PROJECT_ROOT / "data" / "large" / "train.jsonl"
