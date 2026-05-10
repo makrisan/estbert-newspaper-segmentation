@@ -4,7 +4,7 @@ import os
 import torch
 from torch.utils.data import Dataset
 
-from text_cleaner import clean_text
+from src.text_cleaner import clean_text
 
 # MAX_LENGTH määrab, kui pikad tekstid tokenizer mudelile annab.
 # EstBERT maksimaalne sisendpikkus on 512 tokenit.
