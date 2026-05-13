@@ -35,7 +35,21 @@ LEARNING_RATE = 2e-5
 DEFAULT_CLASS1_WEIGHT_MULTIPLIER = 1.0
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
+    """
+    Parsib käsurea argumendid treenimise konfigureerimiseks.
+
+    Returns:
+        Namespace objekt järgmiste väljadega:
+            train_path:              treenimisandmete JSONL faili asukoht
+            val_path:                valideerimisandmete JSONL faili asukoht
+            final_model_dir:         kaust lõpliku mudeli salvestamiseks
+            checkpoint_dir:          kaust vahepealsete checkpointide jaoks
+            log_dir:                 kaust treenimislogide jaoks
+            class_plot_path:         klassijaotuse graafiku salvestuskoht
+            cm_plot_path:            confusion matrixi salvestuskoht
+            class1_weight_multiplier: klassi 1 kaalu kordaja tasakaalustamiseks
+    """
     parser = argparse.ArgumentParser(description="Train article-boundary classifier")
     parser.add_argument("--train-path", type=Path, default=TRAIN_PATH)
     parser.add_argument("--val-path", type=Path, default=VAL_PATH)
@@ -54,11 +68,36 @@ def parse_args():
 
 
 def resolve_path(arg_path: Path) -> Path:
+    """
+    Teisendab suhtelise tee absoluutseks projekti juure suhtes.
+
+    Args:
+        arg_path: käsurea argumendist saadud tee
+
+    Returns:
+        Absoluutne Path objekt
+    """
     return arg_path if arg_path.is_absolute() else PROJECT_ROOT / arg_path
 
 
 def calculate_class_stats(data: list[dict]) -> tuple[int, int, float, float]:
-    """Arvutab klasside jaotuse ja klassi 1 kaalu."""
+    """
+    Arvutab klasside jaotuse statistika treenimisandmestiku põhjal.
+
+    Klassi 1 kaal arvutatakse valemiga num_zeros / num_ones,
+    mis kompenseerib tasakaalustamatust — haruldasemale klassile
+    antakse kõrgem kaal loss funktsioonis.
+
+    Args:
+        data: JSONL kirjete nimekiri, igaühel väli "label" (0 või 1)
+
+    Returns:
+        Neliku (num_zeros, num_ones, ratio, class_1_weight):
+            num_zeros:     label 0 näidete arv
+            num_ones:      label 1 näidete arv
+            ratio:         suhe num_zeros / num_ones
+            class_1_weight: soovituslik kaal klassile 1
+    """
     labels = [item["label"] for item in data]
     num_zeros = labels.count(0)
     num_ones = labels.count(1)
@@ -67,11 +106,28 @@ def calculate_class_stats(data: list[dict]) -> tuple[int, int, float, float]:
     return num_zeros, num_ones, ratio, class_1_weight
 
 
-def visualize_class_distribution(num_zeros: int, num_ones: int, save_path: Path):
-    """Salvestab klasside jaotuse tulpdiagrammina."""
+def visualize_class_distribution(
+    num_zeros: int,
+    num_ones: int,
+    save_path: Path,
+) -> None:
+    """
+    Salvestab klasside jaotuse tulpdiagrammina PNG failina.
+
+    Kasulik tasakaalustamatuse visuaalseks hindamiseks
+    enne treenimist ja lõputöö dokumentatsiooni jaoks.
+
+    Args:
+        num_zeros: label 0 näidete arv
+        num_ones:  label 1 näidete arv
+        save_path: väljundfaili asukoht (kaust luuakse vajadusel)
+    """
     save_path.parent.mkdir(parents=True, exist_ok=True)
     plt.figure(figsize=(8, 5))
-    plt.bar(["Label 0 (pole algus)", "Label 1 (artikli algus)"], [num_zeros, num_ones])
+    plt.bar(
+        ["Label 0 (pole algus)", "Label 1 (artikli algus)"],
+        [num_zeros, num_ones]
+    )
     plt.ylabel("Arv")
     plt.title("Klasside jaotus treeningandmestikus")
     plt.tight_layout()
@@ -81,7 +137,24 @@ def visualize_class_distribution(num_zeros: int, num_ones: int, save_path: Path)
 
 
 def compute_metrics(eval_pred) -> dict:
-    """Arvutab accuracy, precision, recall ja F1."""
+    """
+    Arvutab hindamismetrikad Hugging Face Trainer API jaoks.
+
+    Kutsutakse automaatselt iga eval_strategy sammu lõpus.
+    Kasutab binary average kuna tegemist on kaheklassilise
+    probleemiga, kus label 1 (artikli algus) on põhifookus.
+
+    Args:
+        eval_pred: EvalPrediction objekt väljadega
+                   predictions (logits) ja label_ids
+
+    Returns:
+        Dict järgmiste võtmetega:
+            accuracy:  õigete ennustuste osakaal kõigist
+            f1:        F1-skoor label 1-le (peamine mõõdik)
+            precision: täpsus label 1-le (mitu ennustust oli õige)
+            recall:    täielikkus label 1-le (mitu tegelikku leiti)
+    """
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
 
@@ -93,8 +166,20 @@ def compute_metrics(eval_pred) -> dict:
     return {"accuracy": acc, "f1": f1, "precision": precision, "recall": recall}
 
 
-def plot_confusion_matrix(cm: np.ndarray, save_path: Path):
-    """Salvestab confusion matrixi pildina."""
+def plot_confusion_matrix(cm: np.ndarray, save_path: Path) -> None:
+    """
+    Salvestab confusion matrixi visuaalina PNG failina.
+
+    Confusion matrix näitab nelja arvu:
+        TN (True Negative):  label 0 õigesti ennustatud
+        FP (False Positive): label 0 valesti ennustatud label 1-ks
+        FN (False Negative): label 1 valesti ennustatud label 0-ks
+        TP (True Positive):  label 1 õigesti ennustatud
+
+    Args:
+        cm:        2x2 numpy maatriks confusion_matrix() väljundist
+        save_path: väljundfaili asukoht (kaust luuakse vajadusel)
+    """
     save_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(cm, cmap="Blues")
@@ -116,13 +201,54 @@ def plot_confusion_matrix(cm: np.ndarray, save_path: Path):
 
 
 class WeightedTrainer(Trainer):
-    """Trainer, mis kasutab kaalutud CrossEntropyLoss'i klasside tasakaalustamiseks."""
+    """
+    Hugging Face Trainer'i laiendus kaalutud loss funktsiooniga.
+
+    Standardne Trainer kasutab kaalumata CrossEntropyLoss'i,
+    mis tugevalt tasakaalustamata andmestikul (94% label 0,
+    6% label 1) õpib ennustama peaaegu alati label 0-i ja
+    saavutab kõrge accuracy aga madala F1 label 1-le.
+
+    WeightedTrainer annab haruldasemale klassile (label 1)
+    kõrgema kaalu, mistõttu vead label 1 ennustamisel
+    karistatakse rohkem ja mudel õpib artiklipiire paremini
+    tuvastama.
+
+    Attributes:
+        class_weights: tensor kujuga [2] kaaludega [w0, w1],
+                       kus w1 > w0 tasakaalustamatu andmestiku korral
+    """
 
     def __init__(self, class_weights: torch.Tensor, *args, **kwargs):
+        """
+        Initsialiseerib WeightedTrainer'i kaalutud loss funktsiooniga.
+
+        Args:
+            class_weights: tensor kujuga [2], nt [1.0, 15.72]
+                           kus teine väärtus on klassi 1 kaal
+            *args:         edastatakse Trainer.__init__-ile
+            **kwargs:      edastatakse Trainer.__init__-ile
+        """
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        """
+        Arvutab kaalutud CrossEntropyLoss'i.
+
+        Ylikkirjutab Trainer.compute_loss() meetodi et lisada
+        klassi kaalud loss funktsiooni. Kõrgem kaal klassile 1
+        tähendab et vale ennustus artikli alguse kohta
+        karistatakse rohkem kui vale ennustus jätku kohta.
+
+        Args:
+            model:          treenimisalune mudel
+            inputs:         batch sisendid (input_ids, attention_mask, labels)
+            return_outputs: kui True, tagastab ka mudeli väljundid
+
+        Returns:
+            loss tensor, või (loss, outputs) kui return_outputs=True
+        """
         labels = inputs.pop("labels")
         outputs = model(**inputs)
         loss = torch.nn.CrossEntropyLoss(
@@ -131,7 +257,23 @@ class WeightedTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def main():
+def main() -> None:
+    """
+    Peafunktsioon — koordineerib kogu treenimise pipeline'i.
+
+    Sammud:
+        1. Laeb treenimis- ja valideerimisandmestiku
+        2. Arvutab klasside jaotuse ja optimaalse class_weight
+        3. Visualiseerib klasside jaotuse
+        4. Laeb eeltreenitud EstBERT mudeli
+        5. Treenib WeightedTrainer'iga (kaalutud loss)
+        6. Hindab lõplikku mudelit (F1, Precision, Recall, Accuracy)
+        7. Salvestab confusion matrixi ja lõpliku mudeli
+
+    Peamine hindamismõõdik on F1-skoor label 1-le,
+    kuna täpsus (accuracy) on tasakaalustamata andmestikul
+    eksitav — 94% täpsust saab ka alati label 0 ennustades.
+    """
     print("1. Alustan treeningut")
     args = parse_args()
 
@@ -159,7 +301,10 @@ def main():
         raise ValueError("--class1-weight-multiplier peab olema > 0")
 
     effective_class1_weight = class_1_weight * args.class1_weight_multiplier
-    print(f"  Efektiivne klassi 1 kaal: {effective_class1_weight:.2f} (kordaja={args.class1_weight_multiplier:.2f})\n")
+    print(
+        f"  Efektiivne klassi 1 kaal: {effective_class1_weight:.2f} "
+        f"(kordaja={args.class1_weight_multiplier:.2f})\n"
+    )
 
     visualize_class_distribution(num_zeros, num_ones, save_path=class_plot_path)
 
@@ -186,7 +331,6 @@ def main():
         save_total_limit=2,
     )
 
-    # --- TRAINER ---
     trainer = WeightedTrainer(
         class_weights=class_weights,
         model=model,

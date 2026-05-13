@@ -20,14 +20,36 @@ DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "large_triplet_dataset.jsonl"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "large"
 
 
-def save_jsonl(data, path):
+def save_jsonl(data: list[dict], path: Path) -> None:
+    """
+    Salvestab andmestiku JSONL formaadis faili.
+
+    Iga dict kirjutatakse eraldi reale JSON kujul.
+    Kaust luuakse automaatselt kui see puudub.
+
+    Args:
+        data: salvestatavate kirjete nimekiri
+        path: väljundfaili asukoht
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for item in data:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
-def label_stats(dataset, name):
+def label_stats(dataset: list[dict], name: str) -> None:
+    """
+    Prindib andmestiku label-jaotuse statistika.
+
+    Näitab label 0 ja label 1 arvu ning protsenti,
+    samuti klasside tasakaalustamatuse suhte (0:1).
+    Kasulik klasside tasakaalustamatuse hindamiseks
+    enne treenimist.
+
+    Args:
+        dataset: kirjete nimekiri, igaühel väli "label" (0 või 1)
+        name:    andmestiku nimi (nt "Train", "Val", "Test")
+    """
     ones = sum(1 for x in dataset if x["label"] == 1)
     zeros = sum(1 for x in dataset if x["label"] == 0)
     total = len(dataset)
@@ -40,18 +62,28 @@ def label_stats(dataset, name):
         print(f"0:1 suhe = {zeros / ones:.2f}:1")
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Split triplet dataset into train/val/test")
+def parse_args() -> argparse.Namespace:
+    """
+    Parsib käsurea argumendid andmestiku jagamiseks.
+
+    Returns:
+        Namespace objekt järgmiste väljadega:
+            input_path:  JSONL sisendfaili asukoht
+            output_dir:  kaust train/val/test failide jaoks
+            train_ratio: treenimisandmete osakaal (vaikimisi 0.8)
+            val_ratio:   valideerimisandmete osakaal (vaikimisi 0.1)
+            test_ratio:  testandmete osakaal (vaikimisi 0.1)
+            seed:        juhuslikkuse seeme reprodutseeritavuseks
+    """
+    parser = argparse.ArgumentParser(
+        description="Split triplet dataset into train/val/test"
+    )
     parser.add_argument(
-        "--input-path",
-        type=Path,
-        default=DEFAULT_INPUT_PATH,
+        "--input-path", type=Path, default=DEFAULT_INPUT_PATH,
         help="Input JSONL dataset path"
     )
     parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
+        "--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
         help="Output directory for train/val/test JSONL files"
     )
     parser.add_argument("--train-ratio", type=float, default=0.8)
@@ -61,20 +93,70 @@ def parse_args():
     return parser.parse_args()
 
 
-def extract_group_id(example):
+def extract_group_id(example: dict) -> str:
+    """
+    Eraldab artikli ID näite ID-st.
+
+    Näite ID formaat on "article_id_chunk_idx" — viimane
+    alakriipsu osa on chunk'i järjekorranumber, ülejäänu
+    on artikli ID. Gruppimine artikli järgi tagab et sama
+    artikli laused ei jaotuks eri splittide vahel
+    (vältimaks andmeleket).
+
+    Args:
+        example: JSONL kirje väljaga "id"
+                 (nt "estdagbladet20110316.1.3_7")
+
+    Returns:
+        Artikli ID string (nt "estdagbladet20110316.1.3")
+    """
     raw_id = str(example.get("id", ""))
     if "_" in raw_id:
         return raw_id.rsplit("_", 1)[0]
     return raw_id
 
 
-def split_groups(group_ids, train_ratio, val_ratio, test_ratio, seed):
+def split_groups(
+    group_ids: list[str],
+    train_ratio: float,
+    val_ratio: float,
+    test_ratio: float,
+    seed: int,
+) -> tuple[set, set, set]:
+    """
+    Jagab artiklid train/val/test gruppidesse artikli tasemel.
+
+    Gruppimine toimub artikli ID järgi, mitte üksikute lausete
+    järgi. See tagab et ühe artikli kõik laused lähevad samasse
+    splitti — vältides andmeleket (data leakage) treenimise ja
+    hindamise vahel.
+
+    Jaotus toimub kahes etapis:
+        1. train vs (val + test)
+        2. val vs test ülejäänud osas
+
+    Args:
+        group_ids:   artikli ID nimekiri iga näite kohta
+        train_ratio: treenimisandmete osakaal (nt 0.8)
+        val_ratio:   valideerimisandmete osakaal (nt 0.1)
+        test_ratio:  testandmete osakaal (nt 0.1)
+        seed:        juhuslikkuse seeme reprodutseeritavuseks
+
+    Returns:
+        Kolmik (train_groups, val_groups, test_groups) —
+        igaüks on set artikli ID-dest
+
+    Raises:
+        ValueError: kui ratios ei summeeru 1.0-ks
+    """
     if abs((train_ratio + val_ratio + test_ratio) - 1.0) > 1e-8:
         raise ValueError("train/val/test ratios must sum to 1.0")
 
     unique_groups = sorted(set(group_ids))
 
-    splitter_1 = GroupShuffleSplit(n_splits=1, train_size=train_ratio, random_state=seed)
+    splitter_1 = GroupShuffleSplit(
+        n_splits=1, train_size=train_ratio, random_state=seed
+    )
     train_group_idx, temp_group_idx = next(
         splitter_1.split(unique_groups, groups=unique_groups)
     )
@@ -100,7 +182,27 @@ def split_groups(group_ids, train_ratio, val_ratio, test_ratio, seed):
     return train_groups, val_groups, test_groups
 
 
-def check_no_group_leakage(train_data, val_data, test_data):
+def check_no_group_leakage(
+    train_data: list[dict],
+    val_data: list[dict],
+    test_data: list[dict],
+) -> None:
+    """
+    Kontrollib et ükski artikkel ei esine mitmes splitsis korraga.
+
+    Andmeleke (data leakage) tekib kui sama artikli laused
+    on nii treenimis- kui testandmetes — mudel "näeb" test
+    andmeid juba treenimise ajal ja tulemused on optimistlikult
+    moonutatud.
+
+    Args:
+        train_data: treenimisandmete kirjete nimekiri
+        val_data:   valideerimisandmete kirjete nimekiri
+        test_data:  testandmete kirjete nimekiri
+
+    Raises:
+        RuntimeError: kui leitakse kattuvaid gruppe splittide vahel
+    """
     train_groups = {extract_group_id(x) for x in train_data}
     val_groups = {extract_group_id(x) for x in val_data}
     test_groups = {extract_group_id(x) for x in test_data}
@@ -114,20 +216,36 @@ def check_no_group_leakage(train_data, val_data, test_data):
 
     print("\nGroup leakage check: OK")
     print(
-        f"Groups -> train: {len(train_groups)}, val: {len(val_groups)}, test: {len(test_groups)}"
+        f"Groups -> train: {len(train_groups)}, "
+        f"val: {len(val_groups)}, "
+        f"test: {len(test_groups)}"
     )
 
 
-def main():
+def main() -> None:
+    """
+    Peafunktsioon — jagab JSONL andmestiku train/val/test splittideks.
+
+    Sammud:
+        1. Laeb täieliku triplet-andmestiku JSONL failist
+        2. Eraldab artikli ID-d grupipõhiseks jagamiseks
+        3. Jagab artiklid train/val/test gruppidesse
+        4. Määrab iga näite vastavasse splitti
+        5. Salvestab kolm JSONL faili output kausta
+        6. Prindib statistika ja kontrollib andmeleket
+    """
     args = parse_args()
 
-    input_path = args.input_path
-    if not input_path.is_absolute():
-        input_path = PROJECT_ROOT / input_path
-
-    output_dir = args.output_dir
-    if not output_dir.is_absolute():
-        output_dir = PROJECT_ROOT / output_dir
+    input_path = (
+        args.input_path
+        if args.input_path.is_absolute()
+        else PROJECT_ROOT / args.input_path
+    )
+    output_dir = (
+        args.output_dir
+        if args.output_dir.is_absolute()
+        else PROJECT_ROOT / args.output_dir
+    )
 
     train_path = output_dir / "train.jsonl"
     val_path = output_dir / "val.jsonl"
