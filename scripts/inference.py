@@ -1,7 +1,6 @@
 from pathlib import Path
 import sys
 import argparse
-
 import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,30 +11,86 @@ from src.model_setup import load_model
 from src.dataset import build_triplet_input
 from src.text_cleaner import extract_p_tags, split_into_sentences
 
-INPUT_PATH = PROJECT_ROOT / "data" / "raw" / "estdagbladet_20110316_lk.txt"
+INPUT_DIR = PROJECT_ROOT / "data" / "raw" / "unsegmented"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
-OUTPUT_PATH = OUTPUT_DIR / "estdagbladet_20110316_lk_predicted.txt"
-DEBUG_OUTPUT_PATH = OUTPUT_DIR / "estdagbladet_20110316_lk_debug.txt"
 MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
 
 MAX_LENGTH = 512
 DEFAULT_THRESHOLD = 0.5
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Sliding window inference artikli piiride leidmiseks")
-    parser.add_argument("--input-path", type=Path, default=INPUT_PATH)
-    parser.add_argument("--output-path", type=Path, default=OUTPUT_PATH)
-    parser.add_argument("--debug-output-path", type=Path, default=DEBUG_OUTPUT_PATH)
+def parse_args() -> argparse.Namespace:
+    """
+    Parsib käsurea argumendid.
+
+    Returns:
+        Namespace objekt järgmiste väljadega:
+            input_dir:  kaust segmenteerimata .txt failidega
+            input_path: üks konkreetne sisendfail (valikuline)
+            output_dir: kaust väljundfailide jaoks
+            model_path: treenitud mudeli asukoht
+            threshold:  boundary tõenäosuse lävi (0.0–1.0)
+    """
+    parser = argparse.ArgumentParser(
+        description="Sliding window inference artikli piiride leidmiseks"
+    )
+    parser.add_argument(
+        "--input-dir", type=Path, default=INPUT_DIR,
+        help="Kaust segmenteerimata .txt failidega (vaikimisi: data/raw/unsegmented/)"
+    )
+    parser.add_argument(
+        "--input-path", type=Path, default=None,
+        help="Üks konkreetne sisendfail (kui soovid ainult ühte töödelda)"
+    )
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     parser.add_argument("--model-path", type=Path, default=MODEL_PATH)
     parser.add_argument(
-        "--threshold",
-        type=float,
-        default=DEFAULT_THRESHOLD,
-        help="Boundary tõenäosuse lävi (default: 0.5). "
-             "Kasuta evaluate.py leitud parimat threshold'i.",
+        "--threshold", type=float, default=DEFAULT_THRESHOLD,
+        help="Boundary tõenäosuse lävi (default: 0.5).",
     )
     return parser.parse_args()
+
+
+def collect_input_files(args: argparse.Namespace) -> list[Path]:
+    """
+    Koostab töödeldavate failide nimekirja.
+
+    Kui --input-path on antud, töötleb ainult seda üht faili.
+    Muidu leitakse kõik .txt failid --input-dir kaustast.
+
+    Args:
+        args: parse_args() tagastatud Namespace objekt
+
+    Returns:
+        Sorteeritud nimekiri Path objektidest
+
+    Raises:
+        FileNotFoundError: kui üksikfail või kaust ei eksisteeri,
+                           või kaustas pole ühtegi .txt faili
+    """
+    if args.input_path is not None:
+        path = (
+            args.input_path
+            if args.input_path.is_absolute()
+            else PROJECT_ROOT / args.input_path
+        )
+        if not path.exists():
+            raise FileNotFoundError(f"Faili ei leitud: {path}")
+        return [path]
+
+    input_dir = (
+        args.input_dir
+        if args.input_dir.is_absolute()
+        else PROJECT_ROOT / args.input_dir
+    )
+    if not input_dir.exists():
+        raise FileNotFoundError(f"Kausta ei leitud: {input_dir}")
+
+    files = sorted(input_dir.glob("*.txt"))
+    if not files:
+        raise FileNotFoundError(f"Kaustas pole .txt faile: {input_dir}")
+
+    return files
 
 
 def predict_boundaries(
@@ -46,8 +101,28 @@ def predict_boundaries(
     threshold: float,
 ) -> list[dict]:
     """
-    Liigub sliding window'ga üle lausete ja ennustab artikli piire.
-    Kasutab threshold'i argumendina, mitte hardcoded väärtust.
+    Ennustab artikli piire sliding window meetodil.
+
+    Iga lause kohta ehitatakse triplet (prev, curr, next) ja
+    saadetakse mudelisse. Mudel tagastab tõenäosuse et curr
+    on uue artikli algus (label 1). Esimene lause saab alati
+    label 0, kuna eelnevat konteksti pole.
+
+    Args:
+        sentences: puhastatud lausete nimekiri
+        tokenizer: EstBERT tokenizer
+        model:     treenitud BertForSequenceClassification mudel
+        device:    torch.device (cpu või cuda)
+        threshold: piiri tõenäosuse lävi — kui prob >= threshold,
+                   ennustatakse label 1 (artikli algus)
+
+    Returns:
+        Nimekiri dict objektidest, igaühes:
+            prev:          eelnev lause (tühi kui artikli algus)
+            curr:          praegune lause
+            next:          järgmine lause (tühi kui viimane)
+            pred_label:    0 (jätk) või 1 (uus artikkel)
+            boundary_prob: mudeli ennustatud tõenäosus label 1-le
     """
     results = []
 
@@ -90,9 +165,17 @@ def predict_boundaries(
     return results
 
 
-def write_debug_output(results: list[dict], output_path: Path):
+def write_debug_output(results: list[dict], output_path: Path) -> None:
     """
-    Kirjutab debug-väljundi faili — prev/curr/next kontekst ja boundary tõenäosus.
+    Kirjutab inimloetava debug-faili iga lause kohta.
+
+    Iga kirje sisaldab indeksit, ennustatud labelit,
+    boundary tõenäosust ning prev/curr/next konteksti.
+    Kasulik mudeli käitumise manuaalseks kontrollimiseks.
+
+    Args:
+        results:     predict_boundaries() tagastatud nimekiri
+        output_path: väljundfaili asukoht (kaust luuakse vajadusel)
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -107,9 +190,17 @@ def write_debug_output(results: list[dict], output_path: Path):
             f.write(f"NEXT:\n{item['next']}\n\n")
 
 
-def write_tagged_output(results: list[dict], output_path: Path):
+def write_tagged_output(results: list[dict], output_path: Path) -> None:
     """
-    Kirjutab segmenteeritud väljundi faili <p> tagedega.
+    Kirjutab segmenteeritud väljundi <p> tagedega.
+
+    Iga pred_label=1 kohal avatakse uus <p> blokk.
+    Tulemus on sama formaat mis segmenteeritud treenimisfailid,
+    mis võimaldab tulemusi visuaalselt võrrelda originaaliga.
+
+    Args:
+        results:     predict_boundaries() tagastatud nimekiri
+        output_path: väljundfaili asukoht (kaust luuakse vajadusel)
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -129,15 +220,28 @@ def write_tagged_output(results: list[dict], output_path: Path):
             f.write("</p>\n")
 
 
-def main():
-    args = parse_args()
+def process_file(
+    input_path: Path,
+    args: argparse.Namespace,
+    tokenizer,
+    model,
+    device,
+) -> None:
+    """
+    Töötleb ühe segmenteerimata faili täielikult läbi.
 
-    input_path = args.input_path if args.input_path.is_absolute() else PROJECT_ROOT / args.input_path
-    model_path = args.model_path if args.model_path.is_absolute() else PROJECT_ROOT / args.model_path
+    Loeb faili, puhastab teksti, ennustab piirid ja
+    salvestab nii tagged kui debug väljundi. Väljundfailide
+    nimed tuletatakse automaatselt sisendi nimest.
 
-    print("1. Loen sisendfaili")
-    if not input_path.exists():
-        raise FileNotFoundError(f"Faili ei leitud: {input_path}")
+    Args:
+        input_path: segmenteerimata sisendfaili asukoht
+        args:       käsurea argumendid (threshold, output_dir jne)
+        tokenizer:  EstBERT tokenizer
+        model:      treenitud BertForSequenceClassification mudel
+        device:     torch.device (cpu või cuda)
+    """
+    print(f"\n--- Töötlen: {input_path.name} ---")
 
     with open(input_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
@@ -152,37 +256,56 @@ def main():
         paragraphs = extract_p_tags(html_text)
         all_sentences.extend(split_into_sentences(paragraphs))
 
-    print(f"Kokku lauseid pärast eeltöötlust: {len(all_sentences)}")
+    print(f"Lauseid pärast eeltöötlust: {len(all_sentences)}")
 
-    print("2. Laen mudeli")
-    tokenizer, model = load_model(model_path)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
-
-    print(f"3. Ennustan piire (threshold={args.threshold})")
     results = predict_boundaries(all_sentences, tokenizer, model, device, args.threshold)
 
     total_boundaries = sum(x["pred_label"] for x in results)
     print(f"Leitud piire: {total_boundaries}")
 
-    if total_boundaries == 0:
-        print("Mudel ei ennustanud ühtegi piiri.")
-    else:
-        print("\nEnnustatud piirid:")
-        for item in results:
-            if item["pred_label"] == 1:
-                print("-" * 60)
-                print(f"Tõenäosus: {item['boundary_prob']:.4f}")
-                print(f"PREV: {item['prev'][:200]}")
-                print(f"CURR: {item['curr'][:200]}")
+    stem = input_path.stem
+    output_path = args.output_dir / f"{stem}_predicted.txt"
+    debug_path = args.output_dir / f"{stem}_debug.txt"
 
-    print("4. Salvestan väljundi")
-    write_tagged_output(results, args.output_path)
-    write_debug_output(results, args.debug_output_path)
+    write_tagged_output(results, output_path)
+    write_debug_output(results, debug_path)
 
-    print(f"Väljundfail: {args.output_path}")
-    print(f"Debug fail:  {args.debug_output_path}")
+    print(f"Väljund: {output_path}")
+    print(f"Debug:   {debug_path}")
+
+
+def main() -> None:
+    """
+    Peafunktsioon — koordineerib kogu inference pipeline'i.
+
+    Sammud:
+        1. Parsib käsurea argumendid
+        2. Leiab töödeldavad failid
+        3. Laeb mudeli üks kord (efektiivsuse huvides)
+        4. Töötleb iga faili järjest läbi process_file()
+    """
+    args = parse_args()
+
+    input_files = collect_input_files(args)
+    print(f"Töödeldavaid faile: {len(input_files)}")
+
+    print("Laen mudeli...")
+    model_path = (
+        args.model_path
+        if args.model_path.is_absolute()
+        else PROJECT_ROOT / args.model_path
+    )
+    tokenizer, model = load_model(model_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+    print(f"Mudel laetud, kasutan: {device}")
+    print(f"Threshold: {args.threshold}")
+
+    for input_path in input_files:
+        process_file(input_path, args, tokenizer, model, device)
+
+    print("\nKõik failid töödeldud!")
 
 
 if __name__ == "__main__":
