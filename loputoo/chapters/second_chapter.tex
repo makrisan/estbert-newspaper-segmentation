@@ -1,0 +1,75 @@
+\section{Andmete päritolu}\label{sec:andmete-parituolu} 
+Käesoleva töö andmestik pärineb Eesti Rahvusraamatukogu (RaRa) digitaalarhiivist DIGAR. Andmete kasutamiseks pöörduti otse RaRa poole, kes võimaldas ligipääsu digiteeritud ajalehtede täistekstidele. Kasutada sai üksnes vabakasutuses või piiratud kasutusloaga märgistatud ajalehti, mis ei ole autoriõigusega kaitstud viisil, mis takistaks töötlemist.
+
+P. Tinits märgib, et umbes 62\% kõigist DEA ajalehenumbritest on artikliteks segmenteeritud, ülejäänud materjal on kättesaadav vaid lehekülje kaupa. Segmenteerimata osa suurusjärk on ligikaudu 1\,500\,000 lehekülge \cite[lk~102]{tinits2025}. Käesolev töö keskendub just sellele segmenteerimata osale, eesmärgiga luua lahendus läbi keelemudeli, mis suudab artiklite piire automaatselt tuvastada ka siis, kui visuaalset struktuuriinfot pole saadaval.
+
+Andmed edastati RaRa poolt \texttt{.txt} failidena kahes variandis: segmenteeritud kujul (artiklid eraldatud, igal artiklil unikaalne identifikaator) ning segmenteerimata kujul (kogu lehekülje tekst ühe reana). Segmenteeritud faile kasutati treeningandmestiku loomiseks, kuna nendes on artiklistruktuur teada ning silte saab automaatselt genereerida. Segmenteerimata failid esindavad tegelikku sihtülesannet ehk just sellisel kujul tekst esitatakse mudelile rakendamisel.
+
+
+\section{Andmete formaat ja struktuur}\label{sec:andmete-formaat}
+Segmenteeritud sisendfailid on struktureeritud selliselt, et iga rida vastab ühele artiklile ning koosneb kahest eraldatud osast: artikli identifikaatorist ja artikli HTML-tekstist. Identifikaator on kujul \texttt{ajalehenimi + kuupäev + lehekülje number + artikli number}, näiteks \texttt{estdagbladet20110316.1.1}. HTML-tekst sisaldab \texttt{<p>}-märgendeid, mis eraldavad lõike.
+
+Segmenteerimata failid sisaldavad lehekülje kogu teksti ühe reana koos identifikaatoriga, mis viitab ajalehele ja leheküljele, kuid mitte üksikule artiklile. Nende failide puhul on artiklite piirid määramata ning nende taastamine on käesoleva töö põhiülesanne.
+
+Andmestiku väljundiks on \texttt{.txt} fail, kus artiklite piirid on tähistatud kindla sümboliga \textit{<p>}. Mudeli sisendformaadiks valiti JSONL (\textit{JSON Lines}) \cite{jsonlines}, 
+kus iga rida sisaldab üht iseseisvat näidet. See formaat võimaldab andmeid 
+töödelda rida-haaval ilma kogu faili mällu laadimata, mis on oluline 
+suurte andmemahtude puhul \cite{jsonlines}.
+
+
+\section{OCR kvaliteet ja müra}\label{sec:ocr-kvaliteet}
+Andmestik sisaldab märkimisväärses koguses OCR-müra, mis on tingitud nii ajalehtede vanusest kui ka digiteerimisprotsessist. Ajalehtede digiteerimine toimub skaneeritud piltide tekstiks teisendamise teel optilise märgituvastuse (OCR) tehnoloogia abil, mille kvaliteet sõltub nii algmaterjali seisukorrast kui ka kasutatud tarkvarast. Käesoleva töö andmestiku puhul on eriti problemaatiline asjaolu, et leheküljepõhised materjalid on digiteeritud üle kümne aasta tagasi, mistõttu kasutatud OCR-tööriistad ei vasta praegustele standarditele (L. Nemvalts, suuline kommunikatsioon, 16.09.2025).
+
+Lisaks OCR-vigadele sisaldavad andmed HTML-märgendeid, lehekülje päiseid ja jaluseid, reklaamtekste ning muid struktuurielemente, mis ei kuulu artiklite sisusse. Kõik need tegurid nõudsid süstemaatilist andmete eeltöötlust enne mudelitreeningut.
+
+
+\section{Andmestiku ettevalmistus}\label{sec:andmestiku-ettevalmistus}
+Andmestiku ettevalmistus läbis kolm põhilist arendusfaasi, millest igaüks tõi kaasa olulisi täiustusi nii andmete mahus kui ka kvaliteedis.
+
+\textbf{Esimene faas: käsitsi koostatud näidisandmestik.} Töö algfaasis koostati käsitsi väike näidisandmestik (\texttt{sample\_dataset.jsonl}), mis sisaldas kuni paarsada rida näiteid. Iga näide koosnes ühest lausest koos sildiga: \texttt{label=1} tähistab artikli algust (pealkiri) ja \texttt{label=0} artikli jätku. Kuigi see lähenemine võimaldas kiiresti kontrollida mudeli põhifunktsionaalsust, osutus käsitsi andmete koostamine liiga aeganõudvaks.
+
+\textbf{Teine faas: automaatne andmestiku genereerimine.} Lahendusena töötati välja automaatne andmestiku genereerimise skript, mis töötleb segmenteeritud sisendfaile ja loob struktureeritud JSONL-andmestiku. Skript eraldab iga artikli lauseteks, määrab igale lausele sildi artikli identifikaatori põhjal ning salvestab tulemuse kolmik-formaadis. See võimaldas andmestiku mahtu kasvatada käsitsi loodud paarisaja näite pealt üle 33\,000 näiteni, mis osutus peenhäälestuseks piisavaks lähtepunktiks.
+
+\textbf{Kolmas faas: kolmik-formaadi integreerimine ja viimistlus.} Sisendi rikastamiseks võeti kasutusele kolmik-formaat, kus iga näite puhul esitatakse lisaks jooksvale lausele (\textit{curr}) ka eelnev (\textit{prev}) ja järgnev (\textit{next}) lause, järgides mustrit 
+\texttt{prev [SEP] curr [SEP] next}. See annab mudelile laiema kontekstiakna artiklipiiri tuvastamiseks ning on eriti oluline juhtudel, kus üksik lause ei anna piisavat infot piiri kindlaksmääramiseks. Artikli esimesel lausel jäetakse eelneva lause osa tühjaks, kuna eelnevat sama artikli konteksti ei eksisteeri ning artikli viimasel lausel jäetakse järgmise lause osa tühjaks, kuna järgnev lause kuulub juba teise artiklisse.
+
+
+\subsection{HTML puhastamine}\label{subsec:html-puhastamine}
+Sisendtekstid sisaldavad HTML-märgendeid, mis on lisatud DIGAR-i veebikeskkonna jaoks teksti lugemise hõlbustamiseks (Laura Nemvalts, suuline kommunikatsioon, 31.03.2026). Puhastamiseks rakendati kahesammuline protsess: esmalt eraldati \texttt{<p>}-märgendite sisu regulaaravaldistega, seejärel eemaldati ülejäänud HTML-märgendid ning puhastati HTML-olemid. Tulemusena saadi puhas tekst, mis säilitas lõikestruktuuri ilma märgendita.
+
+
+\subsection{Paigutus-müra filtreerimine}\label{subsec:layout-mura}
+Digiteeritud ajalehtede tekst sisaldab hulgaliselt struktuurset müra, mis tuleneb lehekülje paigutusest: päised, jalused, veerupealkirjad, leheküljennumbrid ja üksikud tähed või numbrid, mida OCR on tuvastanud eraldiseisvate tekstielementidena. Nende elementide kandmine treeningandmestikku moonutaks mudeli õppimist, kuna nad ei kanna artiklis sisulist tähendust.
+
+Müra filtreerimiseks töötati välja reeglistik, mis tuvastab ja eemaldab järgmised mustrid: üksikud tähed või numbrid, tüüpilised ajalehtede päised (nt väljaande nimi, aastakäik, kuupäev), lühikesed suurtähelised tekstijupid ning alla 20 tähemärgi pikkused tekstielemendid. Filtreerimisreeglistik koostati empiiriliselt, analüüsides tegelikke andmeid ja tuvastades korduvad müramustrid.
+
+
+\subsection{Lausepiiri kaitsmine}\label{subsec:lausepiiri-kaitsmine}
+Lauseteks jagamisel tekkis probleem lühendite ja kuupäevadega: standardne lausepiiri tuvastamine lõikab teksti punkti järel, mistõttu ``1. detsember'' või ``nr.~125'' eraldati valesti kahe lausena. Selle vältimiseks töötati välja lühendite kaitsmise mehhanism, mis asendab kaitstud punktid ajutiselt platsihoidjaga \texttt{<DOT>} enne lauseteks jagamist ning taastab need pärast jagamist.
+
+Kaitstud elementide nimekiri hõlmab eesti keele sagedasi lühendeid (nt \textit{jne., nr., lk., jt., nt.}), isiku initsiaalide mustreid (nt ``E.~Niit''), järgarvusõnu väiketähe ees (nt ``12.~nädal'') ning kuupäevavorminguid (nt ``23.~novembril 1975'').
+
+
+\section{Andmestiku jagamine}\label{sec:andmestiku-jagamine}
+Mudeli treenimiseks, hindamiseks ja lõplikuks testimiseks jagati 
+andmestik kolmeks eraldiseisvaks alamhulgaks: treeningosaks, valideerimisosaks ja testosaks.
+
+\textbf{Treeningosa} on andmestiku suurim osa, mida mudel kasutab õppimiseks, kuna sellel andmestikul uuendatakse mudeli parameetreid igal treeningusammul. Treeningosa peab olema piisavalt suur, et mudel suudaks tuvastada andmetes esinevaid mustreid, kuid mitte nii suur, et mudel hakkaks andmeid pähe õppima (\textit{overfitting}) \cite{encord2024split}.
+
+\textbf{Valideerimisosa} kasutatakse mudeli jõudluse hindamiseks treeningu käigus. See võimaldab tuvastada ületreenimist ning kohandada hüperparameetreid, näiteks õpimäära või reguleerimistugevust, hoides samal ajal testosa puutumata lõpliku hindamise jaoks \cite{encord2024split}.
+
+\textbf{Testosa} on täielikult eraldatud andmehulk, mida kasutatakse ainult üks kord ja seda just mudeli lõplike tulemuste hindamiseks pärast treeningu lõppu. Kuna testosa ei ole treeningu ega valideerimise käigus mudelile nähtav, annab see erapooletu ülevaate mudeli võimest üldistuda reaalsetele andmetele \cite{encord2024split}.
+
+Jaotuseks valiti 80/10/10 (treenimine/valideerimine/testimine), mis vastab masinõppes üldlevinud praktikale \cite{encord2024split}. Käesolevas töös kasutatakse grupipõhist jagamist (\textit{GroupShuffleSplit}), kus grupp on artikli identifikaator. See tagab, et sama artikli kõik laused lähevad samasse osasse, vältides seeläbi andmeleket (\textit{data leakage}) ehk olukorda, kus treenimisandmed sisaldavad infot, mis peaks olema kättesaadav ainult testimise või valideerimise ajal \cite{encord2024split}.
+
+
+\section{Andmestiku statistika ja analüüs}\label{sec:andmestiku-statistika}
+\subsection{Klasside jaotus}\label{subsec:klasside-jaotus}
+Andmestiku peamiseks väljakutseks on oluline klasside tasakaalustamatus. Lõplikus andmestikus on kokku 85\,716 näidet, millest artikli algused (\texttt{label=1}) moodustavad 5\,055 näidet (5,90\%) ning artikli jätkud (\texttt{label=0}) 80\,661 näidet (94,10\%). Klasside suhe on seega ligikaudu 1:16 artikli alguste kasuks.
+
+See tasakaalustamatus on struktuuriliselt põhjendatud, sest ühes ajalehes on kümneid artikleid, millest igaühel on üks algus ja mitu jätkulauset. Samas kujutab see endast tehnilist väljakutset mudeli treenimiseks: ilma täiendavate meetmeteta kaldub mudel ennustama ülekaalus olevat klassi. Klasside tasakaalustamatuse leevendamiseks on võimalik rakendada kaalutud kaotuse funktsiooni (\textit{class\_weight}) või üle- ja alavalikut (\textit{oversampling/undersampling}).
+
+\subsection{Andmestiku suurus ja piirangud}\label{subsec:andmestiku-suurus}
+Andmestik koosneb 8 töödeldud failist, mis sisaldab kokku 85\,716 näidet. Peenhäälestuse kontekstis on andmestiku suurus oluline tegur mudeli jõudluse jaoks. Vieira jt näitavad, et peenhäälestuse kvaliteet paraneb järjepidevalt andmestiku kasvades. 1000--2000 näitest ei piisa stabiilseks peenhäälestuseks, kuid kümnete tuhandete näidete puhul on tulemused oluliselt paremad \cite{vieira2024}. Käesoleva töö andmestiku maht on seega peenhäälestuse miinimumläve suhtes asjakohane, kuigi suurem andmestik parandaks tõenäoliselt mudeli üldistamisvõimet.
+
+Andmestiku peamised piirangud on järgmised. Esiteks katab andmestik vaid osa kättesaadavatest ajalehtedest, kuna täieliku katte saavutamine nõuaks ligikaudu 1\,500\,000 lehekülje töötlemist. Teiseks on treeningandmed pärit üksnes segmenteeritud materjalidest, mille OCR-kvaliteet on reeglina kõrgem kui segmenteerimata materjalide puhul, millele mudel hiljem rakendatakse. See lõhe treenimis- ja rakenduskeskkonna vahel võib mõjutada mudeli jõudlust reaalandmetel. Kolmandaks tuleneb klasside tasakaalustamatus otseselt ajalehtede struktuurist ega ole eeltöötlusega kõrvaldatav.
