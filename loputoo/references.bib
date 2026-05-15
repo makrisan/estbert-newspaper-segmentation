@@ -4,36 +4,118 @@
 % article - Journal article
 % phdthesis / mastersthesis - thesis
 % If you have only 1 author, then you can use "", otherwise {}
-@misc{example-reference,
-    author    = "L. Masinter",
-    title     = "Hyper Text Coffee Pot Control Protocol (HTCPCP/1.0)",
-    author = {Paul Kocher and Jann Horn and Anders Fogh and Daniel Genkin and Daniel Gruss and Werner Haas and Mike Hamburg and Moritz Lipp and Stefan Mangard and Thomas Prescher and Michael Schwarz and Yuval Yarom},
-    title = {Spectre Attacks: Exploiting Speculative Execution},
-    booktitle = {40th IEEE Symposium on Security and Privacy (S\&P'19)},
-    year = {2019}
-}
 % \cite{pretrained-language-specific-BERT}
+
+% \cite{rara}
+@misc{rara,
+  author = {{Eesti Rahvusraamatukogu}},
+  title  = {RaRa digitaalsed teenused},
+  url    = {https://www.rara.ee/meist/rara/#digitaalsed-teenused},
+  note   = {[Loetud: XX-XX-2025]}
+}
+
+% \cite{digar}
+@misc{digar,
+  author = {{Eesti Rahvusraamatukogu}},
+  title = {DIGAR - Eesti Rahvusraamatukogu digiarhiiv},
+  url = {https://dea.digar.ee},
+  note = {[Loetud: 06-02-2026]}
+}
+
+% \cite[lk~75--80]{tinits2025}
+@article{tinits2025,
+  author  = {Peeter Tinits},
+  title   = {Digiteeritud Eesti ajalehed uurimisallikana},
+  journal = {Acta Historica Tallinnensia},
+  volume  = {31},
+  number  = {1},
+  year    = {2025},
+  doi     = {10.3176/hist.2025.1.03},
+  url     = {https://www.researchgate.net/publication/391958666_Digiteeritud_Eesti_ajalehed_uurimisallikana}
+}
+
+% \cite{vanstrien2020}
+@inproceedings{vanstrien2020,
+  author    = {Daniel van Strien and Kaspar Beelen and Mariona Coll Ardanuy and Kasra Hosseini and Barbara McGillivray and Giovanni Colavizza},
+  title     = {Assessing the Impact of {OCR} Quality on Downstream {NLP} Tasks},
+  booktitle = {Proceedings of the 12th International Conference on Agents and Artificial Intelligence (ICAART 2020)},
+  volume    = {1},
+  pages     = {484--496},
+  year      = {2020},
+  doi       = {10.5220/0009169004840496}
+}
+
+% \cite{girdhar2023}
+@inproceedings{girdhar2023,
+  author    = {Nihan Girdhar and Micka{\"e}l Coustaty and Antoine Doucet},
+  title     = {Benchmarking {NAS} for Article Separation in Historical Newspapers},
+  booktitle = {International Conference on Asian Digital Libraries},
+  pages     = {76--88},
+  year      = {2023},
+  publisher = {Springer Nature Singapore},
+  doi       = {10.1007/978-981-99-8085-7_7}
+}
+
+% \cite{sun2024}
+@inproceedings{sun2024,
+  author    = {Weihong Sun and Huy Tien Tran and Carlos-Emiliano Gonz{\'a}lez-Gallardo and Micka{\"e}l Coustaty and Antoine Doucet},
+  title     = {{LIAS}: Layout Information-Based Article Separation in Historical Newspapers},
+  booktitle = {Linking Theory and Practice of Digital Libraries},
+  pages     = {256--272},
+  year      = {2024},
+  publisher = {Springer Nature Switzerland},
+  doi       = {10.1007/978-3-031-72437-4_15}
+}
+
+% \cite{mauermann2025}
+@misc{mauermann2025,
+  author = {Johanna Mauermann and Sarah Oberbichler},
+  title  = {{LLM} Biases: Expected and Unexpected Model Design Effects in Historical Newspaper Article Extraction on the Messina Earthquake},
+  year   = {2025},
+  url    = {https://dhlab.hypotheses.org/6060},
+  note   = {[Loetud: XX-XX-2025]}
+}
+
+% \cite{devlin2019}
+@inproceedings{devlin2019,
+  author    = {Jacob Devlin and Ming-Wei Chang and Kenton Lee and Kristina Toutanova},
+  title     = {{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+  booktitle = {Proceedings of NAACL-HLT 2019},
+  pages     = {4171--4186},
+  year      = {2019},
+  doi       = {10.18653/v1/N19-1423},
+  url       = {https://arxiv.org/abs/1810.04805}
+}
+
+% \cite{wolf2020}
+@inproceedings{wolf2020,
+  author    = {Thomas Wolf and Lysandre Debut and Victor Sanh and Julien Chaumond and Clement Delangue and Anthony Moi and Pierric Cistac and Tim Rault and R{\'e}mi Louf and Morgan Funtowicz and Joe Davison and Sam Shleifer and Patrick von Platen and Clara Ma and Yacine Jernite and Julien Plu and Canwen Xu and Teven Le Scao and Sylvain Gugger and Mariama Drame and Quentin Lhoest and Alexander Rush},
+  title     = {Transformers: State-of-the-Art Natural Language Processing},
+  booktitle = {Proceedings of the 2020 EMNLP (Systems Demonstrations)},
+  pages     = {38--45},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.emnlp-demos.6},
+  url       = {https://aclanthology.org/2020.emnlp-demos.6.pdf}
+}
+
+
+% allpool kasutamata allikad
+
 @misc{pretrained-language-specific-BERT,
   author = {Hasan Tanvir and Claudia Kittask and Sandra Eiche and Kairit Sirts},
   title  = {Est-BERT: A Pretrained Language-Specific BERT for Estonian},
   year   = {2019},
   url    = {https://aclanthology.org/2021.nodalida-main.2.pdf},
-  note   = {[Accessed: 06-02-2026]}
+  note   = {[Loetud: 06-02-2026]}
 }
-% \cite{digar}
-@misc{digar,
-  author = {{Rahvusraamatukogu}},
-  title = {DIGAR - Eesti Rahvusraamatukogu digiarhiiv},
-  url = {https://www.digar.ee},
-  note = {[Accessed: 06-02-2026]}
-}
+
 % \cite{oberbichler2025llmnewspapers}
 @misc{oberbichler2025llmnewspapers,
   author = {Sarah Oberbichler},
   title = {New Approaches in Using LLMs for Historical Newspapers Research},
   year = {2025},
   url = {https://www.youtube.com/live/Y_FeQB8fg8c},
-  note = {YouTube lecture, [Accessed: 06-02-2026]}
+  note = {YouTube lecture, [Vaadatud: 06-02-2026]}
 }
 % \cite{kudo2018sentencepiece}
 @misc{kudo2018sentencepiece,
@@ -41,7 +123,7 @@
   title = {SentencePiece: A Simple and Language Independent Subword Tokenizer and Detokenizer for Neural Text Processing},
   year = {2018},
   url = {https://aclanthology.org/D18-2012.pdf},
-  note = {[Accessed: 06-02-2026]}
+  note = {[Loetud: 06-02-2026]}
 }
 % \cite{niitmudelikohandamine}
 @mastersthesis{niitmudelikohandamine,
@@ -50,7 +132,7 @@
     school = {Tartu Ülikool},
     year = {2023},
     url = {https://dspace.ut.ee/server/api/core/bitstreams/7f826dbf-4211-4049-b571-cf9ad9aa0d31/content},
-    note = {[Accessed: 06-02-2026]}
+    note = {[Loetud: 06-02-2026]}
 }
 % \cite{mauermann2025llmbias}
 @misc{mauermann2025llmbias,
@@ -58,7 +140,7 @@
   title = {LLM Biases: Expected and Unexpected Model Design Effects in Historical Newspaper Article Extraction on the Messina Earthquake},
   year = {2025},
   url = {https://dhlab.hypotheses.org/6060},
-  note = {[Accessed: 06-02-2026]}
+  note = {[Loetud: 06-02-2026]}
 }
 % \cite{lehtmets2024ocr}
 @misc{lehtmets2024ocr,
@@ -66,5 +148,6 @@
   title = {Ajalooliste eestikeelsete OCR tekstide järeltöötluse ja hindamise automatiseerimine Eesti Rahvusraamatukogu jaoks},
   year = {2024},
   url = {https://digikogu.taltech.ee/et/Download/43a8b5f0-5b53-40ec-bf6f-de03e5e59c0b},
-  note = {[Accessed: 06-02-2026]}
+  note = {[Loetud: 06-02-2026]}
 }
+
