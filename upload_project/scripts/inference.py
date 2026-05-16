@@ -8,7 +8,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.model_setup import load_model
-from src.dataset import build_triplet_input
 from src.text_cleaner import extract_p_tags, split_into_sentences
 
 INPUT_DIR = PROJECT_ROOT / "data" / "raw" / "unsegmented"
@@ -134,21 +133,23 @@ def predict_boundaries(
             pred_label = 0
             boundary_prob = 0.0
         else:
-            sep_token = tokenizer.sep_token if tokenizer.sep_token else "[SEP]"
-            model_input = build_triplet_input(prev_text, curr, next_text, sep_token)
+            # PARANDUS: kasutame tokenize_with_budget() nagu dataset.py
+            # Vana lähenemine: tokenizer(full_string) lõikas next täielikult ära
+            # Uus lähenemine: igale osale garanteeritud ~170 token eelarve
+            from src.dataset import tokenize_with_budget
 
-            encoding = tokenizer(
-                model_input,
-                truncation=True,
-                padding="max_length",
+            encoding = tokenize_with_budget(
+                tokenizer,
+                prev=prev_text,
+                curr=curr,
+                next_=next_text,
                 max_length=MAX_LENGTH,
-                return_tensors="pt"
             )
 
             with torch.no_grad():
                 outputs = model(
-                    input_ids=encoding["input_ids"].to(device),
-                    attention_mask=encoding["attention_mask"].to(device)
+                    input_ids=encoding["input_ids"].unsqueeze(0).to(device),
+                    attention_mask=encoding["attention_mask"].unsqueeze(0).to(device),
                 )
 
             boundary_prob = torch.softmax(outputs.logits, dim=1)[0][1].item()
@@ -159,7 +160,7 @@ def predict_boundaries(
             "curr": curr,
             "next": next_text,
             "pred_label": pred_label,
-            "boundary_prob": boundary_prob
+            "boundary_prob": boundary_prob,
         })
 
     return results
