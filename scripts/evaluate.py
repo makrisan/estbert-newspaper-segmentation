@@ -17,7 +17,8 @@ from src.model_setup import load_model
 
 VAL_PATH = PROJECT_ROOT / "data" / "large" / "val.jsonl"
 TEST_PATH = PROJECT_ROOT / "data" / "large" / "test.jsonl"
-MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
+## MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
+MODEL_PATH = PROJECT_ROOT / "ai_lab_results" / "final_model"
 REPORT_PATH = PROJECT_ROOT / "data" / "output" / "evaluation_report.json"
 
 # --- HYPERPARAMETERS ---

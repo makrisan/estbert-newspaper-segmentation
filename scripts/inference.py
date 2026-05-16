@@ -12,7 +12,8 @@ from src.text_cleaner import extract_p_tags, split_into_sentences
 
 INPUT_DIR = PROJECT_ROOT / "data" / "raw" / "unsegmented"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
-MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
+## MODEL_PATH = PROJECT_ROOT / "models" / "final_model"
+MODEL_PATH = PROJECT_ROOT / "ai_lab_results" / "final_model"
 
 MAX_LENGTH = 512
 DEFAULT_THRESHOLD = 0.5
