@@ -30,10 +30,9 @@ FINAL_MODEL_DIR = PROJECT_ROOT / "models" / "final_model"
 
 # --- HYPERPARAMETERS ---
 BATCH_SIZE = 4
-EPOCHS = 2
+EPOCHS = 4
 LEARNING_RATE = 2e-5
 DEFAULT_CLASS1_WEIGHT_MULTIPLIER = 1.0
-
 
 def parse_args() -> argparse.Namespace:
     """
@@ -320,6 +319,7 @@ def main() -> None:
         per_device_eval_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
         weight_decay=0.01,
+        warmup_ratio=0.1,  # esimene 10% sammudest on soojendus — parandab stabiilsust
         output_dir=str(checkpoint_dir),
         logging_dir=str(log_dir),
         logging_steps=10,

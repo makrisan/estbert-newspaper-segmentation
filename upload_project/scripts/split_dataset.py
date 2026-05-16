@@ -55,11 +55,41 @@ def label_stats(dataset: list[dict], name: str) -> None:
     total = len(dataset)
 
     print(f"{name} -> kokku: {total}")
+
+    if total == 0:
+        print("Hoiatus: split on tühi")
+        return
+
     print(f"label 0: {zeros} ({zeros / total:.2%})")
     print(f"label 1: {ones} ({ones / total:.2%})")
 
     if ones > 0:
         print(f"0:1 suhe = {zeros / ones:.2f}:1")
+
+
+def check_each_split_has_both_labels(
+    train_data: list[dict],
+    val_data: list[dict],
+    test_data: list[dict],
+) -> None:
+    """
+    Kontrollib, et igas splitis oleks olemas nii label 0 kui label 1.
+    Kui mõnes splitis puudub üks klass, ei ole F1/precision/recall usaldusväärsed.
+    """
+    for split_name, split_data in [
+        ("Train", train_data),
+        ("Val", val_data),
+        ("Test", test_data),
+    ]:
+        ones = sum(1 for x in split_data if x["label"] == 1)
+        zeros = sum(1 for x in split_data if x["label"] == 0)
+
+        if ones == 0:
+            raise RuntimeError(f"{split_name} splitis pole ühtegi label 1 näidet.")
+        if zeros == 0:
+            raise RuntimeError(f"{split_name} splitis pole ühtegi label 0 näidet.")
+
+    print("Label check: OK, igas splitis on label 0 ja label 1 olemas")
 
 
 def parse_args() -> argparse.Namespace:
@@ -95,25 +125,19 @@ def parse_args() -> argparse.Namespace:
 
 def extract_group_id(example: dict) -> str:
     """
-    Eraldab artikli ID näite ID-st.
+    Gruppimiseks kasutame source_file väärtust.
 
-    Näite ID formaat on "article_id_chunk_idx" — viimane
-    alakriipsu osa on chunk'i järjekorranumber, ülejäänu
-    on artikli ID. Gruppimine artikli järgi tagab et sama
-    artikli laused ei jaotuks eri splittide vahel
-    (vältimaks andmeleket).
-
-    Args:
-        example: JSONL kirje väljaga "id"
-                 (nt "estdagbladet20110316.1.3_7")
-
-    Returns:
-        Artikli ID string (nt "estdagbladet20110316.1.3")
+    Nii lähevad ühe sisendfaili kõik näited samasse splitti.
+    See aitab vältida olukorda, kus sama ajalehefaili näited
+    satuvad korraga train, val ja test andmetesse.
     """
-    raw_id = str(example.get("id", ""))
-    if "_" in raw_id:
-        return raw_id.rsplit("_", 1)[0]
-    return raw_id
+    if "source_file" not in example:
+        raise KeyError(
+            "Näitel puudub 'source_file'. "
+            "Kontrolli, et build_large_dataset.py lisab igale näitele source_file välja."
+        )
+
+    return str(example["source_file"])
 
 
 def split_groups(
@@ -124,30 +148,16 @@ def split_groups(
     seed: int,
 ) -> tuple[set, set, set]:
     """
-    Jagab artiklid train/val/test gruppidesse artikli tasemel.
+    Jagab sisendfailid train/val/test gruppidesse source_file tasemel.
 
-    Gruppimine toimub artikli ID järgi, mitte üksikute lausete
-    järgi. See tagab et ühe artikli kõik laused lähevad samasse
-    splitti — vältides andmeleket (data leakage) treenimise ja
-    hindamise vahel.
+    Gruppimine toimub faili järgi, mitte üksikute lausete ega artiklite järgi.
+    See tagab, et ühe ajalehefaili kõik näited lähevad samasse splitti.
+    Nii väldime andmeleket, kus sama faili sarnane tekst esineb korraga
+    treening-, valideerimis- ja testandmetes.
 
     Jaotus toimub kahes etapis:
         1. train vs (val + test)
         2. val vs test ülejäänud osas
-
-    Args:
-        group_ids:   artikli ID nimekiri iga näite kohta
-        train_ratio: treenimisandmete osakaal (nt 0.8)
-        val_ratio:   valideerimisandmete osakaal (nt 0.1)
-        test_ratio:  testandmete osakaal (nt 0.1)
-        seed:        juhuslikkuse seeme reprodutseeritavuseks
-
-    Returns:
-        Kolmik (train_groups, val_groups, test_groups) —
-        igaüks on set artikli ID-dest
-
-    Raises:
-        ValueError: kui ratios ei summeeru 1.0-ks
     """
     if abs((train_ratio + val_ratio + test_ratio) - 1.0) > 1e-8:
         raise ValueError("train/val/test ratios must sum to 1.0")
@@ -188,20 +198,15 @@ def check_no_group_leakage(
     test_data: list[dict],
 ) -> None:
     """
-    Kontrollib et ükski artikkel ei esine mitmes splitsis korraga.
+    Kontrollib, et ükski source_file ei esine mitmes splitis korraga.
 
-    Andmeleke (data leakage) tekib kui sama artikli laused
-    on nii treenimis- kui testandmetes — mudel "näeb" test
-    andmeid juba treenimise ajal ja tulemused on optimistlikult
-    moonutatud.
-
-    Args:
-        train_data: treenimisandmete kirjete nimekiri
-        val_data:   valideerimisandmete kirjete nimekiri
-        test_data:  testandmete kirjete nimekiri
+    Andmeleke tekib siis, kui sama ajalehefaili näited satuvad
+    korraga train, val ja test jaotustesse. Sellisel juhul võib mudel
+    saada liiga optimistlikud mõõdikud, sest ta näeb treeningus väga
+    sarnast teksti sellele, mida hiljem testis hinnatakse.
 
     Raises:
-        RuntimeError: kui leitakse kattuvaid gruppe splittide vahel
+        RuntimeError: kui leitakse kattuvaid source_file gruppe splittide vahel
     """
     train_groups = {extract_group_id(x) for x in train_data}
     val_groups = {extract_group_id(x) for x in val_data}
@@ -212,11 +217,14 @@ def check_no_group_leakage(
     val_test_overlap = val_groups & test_groups
 
     if train_val_overlap or train_test_overlap or val_test_overlap:
-        raise RuntimeError("Group leakage detected across splits")
+        print("Train/Val overlap:", train_val_overlap)
+        print("Train/Test overlap:", train_test_overlap)
+        print("Val/Test overlap:", val_test_overlap)
+        raise RuntimeError("Source file leakage detected across splits")
 
-    print("\nGroup leakage check: OK")
+    print("\nSource file leakage check: OK")
     print(
-        f"Groups -> train: {len(train_groups)}, "
+        f"Files -> train: {len(train_groups)}, "
         f"val: {len(val_groups)}, "
         f"test: {len(test_groups)}"
     )
@@ -254,6 +262,14 @@ def main() -> None:
     data = load_jsonl(input_path)
 
     group_ids = [extract_group_id(x) for x in data]
+    unique_group_ids = sorted(set(group_ids))
+    print(f"Unikaalseid source_file gruppe: {len(unique_group_ids)}")
+
+    if len(unique_group_ids) < 5:
+        print(
+            "HOIATUS: source_file gruppe on väga vähe. "
+            "Train/val/test split võib olla ebastabiilne."
+        )
     train_groups, val_groups, test_groups = split_groups(
         group_ids,
         args.train_ratio,
@@ -283,8 +299,9 @@ def main() -> None:
     label_stats(train_data, "Train")
     label_stats(val_data, "Val")
     label_stats(test_data, "Test")
-    check_no_group_leakage(train_data, val_data, test_data)
 
+    check_each_split_has_both_labels(train_data, val_data, test_data)
+    check_no_group_leakage(train_data, val_data, test_data)
 
 if __name__ == "__main__":
     main()
