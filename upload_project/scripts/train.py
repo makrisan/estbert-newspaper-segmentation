@@ -34,7 +34,6 @@ EPOCHS = 2
 LEARNING_RATE = 2e-5
 DEFAULT_CLASS1_WEIGHT_MULTIPLIER = 1.0
 
-
 def parse_args() -> argparse.Namespace:
     """
     Parsib käsurea argumendid treenimise konfigureerimiseks.
