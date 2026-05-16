@@ -25,7 +25,6 @@ REPORT_PATH = PROJECT_ROOT / "data" / "output" / "evaluation_report.json"
 # train size / batch size = x batxhi ühe epohhi kohta
 BATCH_SIZE = 4
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Hindab mudelit threshold tuning'uga")
     parser.add_argument("--val-path", type=Path, default=VAL_PATH)

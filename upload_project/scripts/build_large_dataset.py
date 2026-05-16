@@ -101,6 +101,9 @@ def parse_segmented_file(file_path: Path) -> list[dict]:
             for chunk_idx, chunk in enumerate(chunks):
                 examples.append({
                     "id": f"{article_id}_{chunk_idx}",
+                    "source_file": file_path.stem,
+                    "article_id": article_id,
+                    "chunk_idx": chunk_idx,
                     "text": chunk,
                     "label": 1 if chunk_idx == 0 else 0
                 })
@@ -114,24 +117,33 @@ def get_article_id(chunk_id: str) -> str:
 
 def build_triplets(examples: list[dict]) -> list[dict]:
     """
-    Ehitab tripletid (prev, curr, next) artiklipiire arvestades.
-    Artikli esimesel chunkil on prev="", mis on BERT-ile oluline signaal.
+    Ehitab tripletid samas järjestuses nagu tekst inference'i ajal ette tuleb.
+
+    Oluline:
+    - Artikli alguse korral ei panda prev="".
+    - Artikli alguse korral on prev eelmise artikli viimane chunk.
+    - See väldib lihtsat shortcut'i: prev tühi => artikli algus.
     """
     triplets = []
 
     for i, item in enumerate(examples):
-        curr_article = get_article_id(item["id"])
+        # Esimene chunk failis on erijuht.
+        # Seda ei ole mõistlik treenida, sest inference'is esimene lause
+        # ei ole päris boundary eelmise ja praeguse vahel.
+        if i == 0:
+            continue
 
-        prev_text = ""
-        if i > 0 and get_article_id(examples[i - 1]["id"]) == curr_article:
-            prev_text = examples[i - 1]["text"]
+        prev_text = examples[i - 1]["text"]
 
         next_text = ""
-        if i < len(examples) - 1 and get_article_id(examples[i + 1]["id"]) == curr_article:
+        if i < len(examples) - 1:
             next_text = examples[i + 1]["text"]
 
         triplets.append({
             "id": item["id"],
+            "source_file": item["source_file"],
+            "article_id": item["article_id"],
+            "chunk_idx": item["chunk_idx"],
             "prev": prev_text,
             "curr": item["text"],
             "next": next_text,
@@ -175,13 +187,22 @@ def main():
             "Oodatav asukoht: data/raw/segmented/ (kaust .txt failidega)"
         )
 
-    all_examples = []
+    all_triplets = []
+
     for file_path in files:
         examples = parse_segmented_file(file_path)
-        all_examples.extend(examples)
-        print(f"{file_path.name}: {len(examples)} examples")
+        triplets_for_file = build_triplets(examples)
+        all_triplets.extend(triplets_for_file)
 
-    triplets = build_triplets(all_examples)
+        print(f"{file_path.name}: {len(examples)} examples, {len(triplets_for_file)} triplets")
+
+    triplets = all_triplets
+    bad_label1_empty_prev = [
+        t for t in triplets
+        if t["label"] == 1 and not t["prev"].strip()
+    ]
+
+    print(f"Label 1 näiteid tühja prev väljaga: {len(bad_label1_empty_prev)}")
     save_jsonl(triplets, OUTPUT_PATH)
 
     label_1 = sum(1 for t in triplets if t["label"] == 1)
@@ -196,7 +217,6 @@ def main():
 
     write_sample_file(triplets, SAMPLE_OUTPUT_PATH)
     print(f"Salvestatud: {OUTPUT_PATH}")
-
 
 if __name__ == "__main__":
     main()
