@@ -8,6 +8,8 @@ __pycache__/
 dist/
 build/
 *.egg
+estbertvenv/
+.env
 
 # Virtual Environment
 venv/
@@ -55,3 +57,34 @@ logs/
 *.synctex.gz
 *.toc
 *.pdf
+
+# AI Lab mudel ja splitid
+vanad_ai_lab_results/
+upload_project/
+ai_lab_results/final_model/
+ai_lab_results/large/
+
+# Suured mudelifailid
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+
+# Debug/predicted väljundid võivad olla pikad
+ai_lab_results/output/*_debug.txt
+ai_lab_results/output/*_predicted.txt
+
+# Treeningu kaustad
+models/
+logs/
+checkpoints/
+runs/
+
+# Genereeritud andmestikud
+data/large/
+data/output/
+data/large_triplet_dataset.jsonl
+
+# IDE
+.idea/
