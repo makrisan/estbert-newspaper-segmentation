@@ -307,6 +307,5 @@ def main() -> None:
 
     print("\nKõik failid töödeldud!")
 
-
 if __name__ == "__main__":
     main()
