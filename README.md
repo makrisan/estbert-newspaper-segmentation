@@ -1,19 +1,31 @@
 # iaib
 
 # Keelemudelipõhine ajaleheartiklite eraldamine ja temaatiline analüüs
-Autorid: Maria Kristina Andranikyan, Greteli Mittal
 
-Juhendaja: Innar Liiv, PhD, Tallinna Tehnikaülikool (TalTech), infotehnoloogia teaduskond
+Autorid: Maria Kristina Andranikyan, Greteli Mittal  
+Juhendaja: Innar Liiv, PhD — Tallinna Tehnikaülikool, infotehnoloogia teaduskond
 
 ## Projekti kirjeldus
 
-Projekti eesmärk on peenhäälestada eestikeelne BERT-mudel, et segmenteerida digiteeritud ja segmenteerimata ajalehtede tekst eraldi artikliteks. 
+Projekt peenhäälestab eestikeelse BERT-mudeli (EstBERT) digiteeritud ajalehtede 
+segmenteerimiseks eraldi artikliteks, kasutades ainult tekstilist konteksti ilma 
+visuaalse paigutuse teabeta. Teostatud koostöös Eesti Rahvusraamatukoguga (RaRa).
 
-### Väljund
+### Projekti struktuur
 
-- **Peenhäälestatud mudel** ajalehtede artikliteks jaotamiseks (BERT-põhine). Mudel peab olema vabavaraline.
-- **Andmeanalüüs** töö käigus valminud mudeli demonstreerimiseks.
-
+```
+iaibLoputoo/
+│
+├── ai_lab_results/    # Treenitud mudel ja checkpointid (TalTech AI-labor, GPU)
+├── analyze/           # Temaatiline analüüs välise testandmestiku põhjal
+├── data/              # Andmestikud — nii segmenteeritud kui segmenteerimata (gitignored)
+├── scripts/           # Peamised skriptid: treenimine, hindamine, rakendamine
+├── src/               # Abikood: seadistus, andmete puhastus, eeltöötlus
+├── loputoo/           # Lõputöö dokumendid
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
 ## Käivitusjuhised
 
 ### 1. Repositooriumi kloneerimine
@@ -21,10 +33,9 @@ Projekti eesmärk on peenhäälestada eestikeelne BERT-mudel, et segmenteerida d
 ```bash
 git clone https://gitlab.cs.taltech.ee/grmitt/iaib.git
 cd iaib
-git checkout main
 ```
 
-### 2. Virtuaalkeskkonna loomine ja aktiveerimine
+### 2. Virtuaalkeskkonna loomine
 
 **Windows (PowerShell):**
 ```powershell
@@ -44,39 +55,32 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Sõltuvusi saab ükshaaval installida, kui requirements ei tööta.
+## Töövoog
+
+Kogu töövoogu käivitab `scripts/run_pipeline.py`, mis jooksutab järjest:
+
+| Samm | Skript | Kirjeldus |
+|------|--------|-----------|
+| 1 | `build_large_dataset.py` | Kolmikandmestiku koostamine segmenteeritud failidest |
+| 2 | `split_dataset.py` | Jagamine train/val/test osadeks (80/10/10) |
+| 3 | `train.py` | EstBERT peenhäälestamine kaalutud kaotusega |
+| 4 | `evaluate.py` | Läve optimeerimine ja F1/täpsus/saagis hindamine |
+| 5 | `inference.py` | Liugaknaga rakendamine segmenteerimata tekstidele |
 
 ```bash
-pip install [nimi]
+python scripts/run_pipeline.py
 ```
 
-### 4. Projekti struktuur
+## Tehnoloogiad
 
-```
-IAIB/
-│
-├─ src/                    # Python lähtekood
-├─ notebooks/              # Jupyter notebooks
-├─ data/                   # Andmestikud (gitignored)
-├─ models/                 # Treenitud mudelid / checkpointid
-├─ scripts/                # Abiskriptid (treening, evalueerimine, jne)
-├─ venv/                   # Python virtuaalkeskkond (gitignored)
-├─ requirements.txt        # Python sõltuvused
-├─ .gitignore
-└─ README.md
-```
+| Tehnoloogia | Versioon | Kasutus |
+|-------------|----------|---------|
+| Python | 3.11 | — |
+| PyTorch | — | Mudeli treenimine |
+| Transformers (Hugging Face) | — | EstBERT mudel |
+| scikit-learn | — | Hindamine (F1, segadusmaatriks) |
 
-## Põhiline töövoog
+## Tulemused
 
-1. **Andmete ettevalmistamine** - ajalehtede laadimine ja eeltöötlus
-2. **Mudeli treenimine** - BERT mudeli peenhäälestus artiklite segmenteerimiseks
-3. **Evalueerimine** - mudeli jõudluse hindamine
-4. **Analüüs** - temaatiline artiklite eraldamine ja analüüs
-
-## Kasutatavad tehnoloogiad
-
-- **PyTorch** - mudeli treenimine
-- **Transformers** (Hugging Face) - BERT mudel
-- **PyMuPDF** - PDF-ide töötlemine
-- **Pandas, NumPy** - andmeanalüüs
-- **scikit-learn** - mudelite evalueerimine
+- **F1-skoor treeningandmestiku testandmestikul:** 0.65  
+- **F1-skoor välisel testandmestikul:** 0.74

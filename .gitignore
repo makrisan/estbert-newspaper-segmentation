@@ -59,6 +59,7 @@ logs/
 *.pdf
 
 # AI Lab mudel ja splitid
+tests/
 vanad_ai_lab_results/
 upload_project/
 ai_lab_results/final_model/
